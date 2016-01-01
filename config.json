@@ -1,5 +1,6 @@
 {
 	"port": 8080,
-	"name": "mooxmirror's blog",
-	"country": "Germany" 
+	"name": "examples blog",
+	"country": "Norway",
+	"author": "User"
 }
