@@ -5,11 +5,12 @@ import (
 	"os"
 	"net/http"
 	"./config"
+	"github.com/gorilla/mux"
 )
 
 var cfg config.Configuration
 
-func hello(w http.ResponseWriter, r *http.Request) {
+func HelloHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "happy new year from %s!", cfg.HostCountry)
 }
 
@@ -22,6 +23,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	http.HandleFunc("/", hello)
-	http.ListenAndServe(":8080", nil)
+	router := mux.NewRouter()
+	router.HandleFunc("/", HelloHandler)
+	http.ListenAndServe(":8080", router)
 }
