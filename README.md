@@ -9,8 +9,8 @@ You need to have a working Go environment installed (v1.5+).
 ```bash
 $ go get github.com/mooxmirror/go-blog # download it from GitHub
 $ go install github.com/mooxmirror/go-blog # install dependencies, build it
-$ $GOPATH/bin/go-blog -init="my-blog-name" # resets your blog folder, starts the server
-$ $GOPATH/bin/go-blog "my-blog-name" # starts the server without reset
+$ $GOPATH/bin/go-blog -reset -blog="my-blog-name" # resets your blog folder, starts the server
+$ $GOPATH/bin/go-blog -blog="my-blog-name" # starts the server without reset
 ```
 
 ## Folder structure

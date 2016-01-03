@@ -26,7 +26,3 @@ func GetConfig(file string) (Config, error) {
 	return config, nil
 }
 
-func GetDefaultConfig() (Config, error) {
-	return GetConfig("./config.json")
-}
-

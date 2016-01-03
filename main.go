@@ -1,29 +1,43 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"log"
+	"flag"
 	"net/http"
-	"github.com/mooxmirror/go-blog/config"
-	"github.com/mooxmirror/go-blog/routes"
+	"github.com/mooxmirror/blog/routes"
 )
 
-var cfg config.Config
-
 func main() {
-	var cfgError error
-	cfg, cfgError = config.GetDefaultConfig()
+	// parse command line arguments
+	resetBlog := flag.Bool("reset", false, "Resets the blog data")
+	blogFolder := flag.String("blog", "my-blog", "Sets the data source folder")
 
-	if cfgError != nil {
-		log.Fatal("Configuration error: ", cfgError)
+	flag.Parse()
+
+	// check if reset
+	if *resetBlog {
+		log.Println("Resetting blog folder ", *blogFolder)
+		resetError := Reset(*blogFolder)
+		if resetError != nil {
+			log.Fatal(resetError)
+			os.Exit(1)
+		}
+	}
+
+	// load configuration file from disk
+	cfg, loadError := Load(*blogFolder)
+	if loadError != nil {
+		log.Fatal(loadError)
 		os.Exit(1)
 	}
 
-	fmt.Println("Server starts listening on", cfg.HostAddress)
-	serverError := http.ListenAndServe(cfg.HostAddress, routes.Setup(cfg))
+	// listen and serve
+	log.Println("Server starts listening on", cfg.HostAddress)
+	router := routes.Setup(cfg)
+	serverError := http.ListenAndServe(cfg.HostAddress, router)
 
 	if serverError != nil {
-		log.Fatal("Server error: ", serverError)
+		log.Fatal(serverError)
 	}
 }

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"github.com/gorilla/mux"
-	"github.com/mooxmirror/go-blog/config"
+	"github.com/mooxmirror/blog/config"
 )
 
 var cfg config.Config
