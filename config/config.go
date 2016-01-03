@@ -5,28 +5,28 @@ import (
 	"encoding/json"
 )
 
-type Configuration struct {
-	HostPort int `json:"port"`
+type Config struct {
+	HostAddress string `json:"host"`
 	BlogName string `json:"name"`
 	HostCountry string `json:"country"`
 }
 
-func GetConfig(file string) (Configuration, error) {
+func GetConfig(file string) (Config, error) {
 	f, err := ioutil.ReadFile(file)
 	if err != nil {
-		return Configuration{}, err
+		return Config{}, err
 	}
 
-	var config Configuration
+	var config Config
 	err = json.Unmarshal(f, &config)
 	if err != nil {
-		return Configuration{}, err
+		return Config{}, err
 	}
 
 	return config, nil
 }
 
-func GetDefaultConfig() (Configuration, error) {
+func GetDefaultConfig() (Config, error) {
 	return GetConfig("./config.json")
 }
 

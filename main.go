@@ -3,27 +3,27 @@ package main
 import (
 	"fmt"
 	"os"
+	"log"
 	"net/http"
-	"./config"
-	"github.com/gorilla/mux"
+	"github.com/mooxmirror/go-blog/config"
+	"github.com/mooxmirror/go-blog/routes"
 )
 
-var cfg config.Configuration
-
-func HelloHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "happy new year from %s!", cfg.HostCountry)
-}
+var cfg config.Config
 
 func main() {
-	var err error
-	cfg, err = config.GetDefaultConfig()
+	var cfgError error
+	cfg, cfgError = config.GetDefaultConfig()
 
-	if err != nil {
-		fmt.Println("Error while loading configuration file")
+	if cfgError != nil {
+		log.Fatal("Configuration error: ", cfgError)
 		os.Exit(1)
 	}
 
-	router := mux.NewRouter()
-	router.HandleFunc("/", HelloHandler)
-	http.ListenAndServe(":8080", router)
+	fmt.Println("Server starts listening on", cfg.HostAddress)
+	serverError := http.ListenAndServe(cfg.HostAddress, routes.Setup(cfg))
+
+	if serverError != nil {
+		log.Fatal("Server error: ", serverError)
+	}
 }

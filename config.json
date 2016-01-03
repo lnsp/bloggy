@@ -1,5 +1,5 @@
 {
-	"port": 8080,
+	"host": ":8080",
 	"name": "examples blog",
 	"country": "Norway",
 	"author": "User"
