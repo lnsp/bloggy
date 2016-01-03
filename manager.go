@@ -2,6 +2,8 @@ package main
 
 import (
 	"github.com/mooxmirror/blog/config"
+	"github.com/mooxmirror/blog/templates"
+	"github.com/mooxmirror/blog/posts"
 	"os/exec"
 	"os"
 )
@@ -37,5 +39,7 @@ func Reset(folder string) error {
 
 // loads the configuration file from the specified folder
 func Load(folder string) (config.Config, error) {
+	templates.Load(folder)
+	posts.Load(folder)
 	return config.GetConfig(folder + "/config.json")
 }

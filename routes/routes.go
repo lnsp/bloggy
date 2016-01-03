@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"github.com/gorilla/mux"
 	"github.com/mooxmirror/blog/config"
+	"github.com/mooxmirror/blog/templates"
 )
 
 var cfg config.Config
