@@ -1,23 +1,23 @@
-# go-blog
+# blog
 **Remember: This is heavily Work-in-Progress and far from being a stable software.**
 
 This is a blog system I am currently developing. It is focused on simplicity and conventions over configuration. I recommend to proxy the service using NGINX or comparable software.
 
-## Set up go-blog
+## Set up blog
 You need to have a working Go environment installed (v1.5+).
 
 ```bash
 $ go get github.com/mooxmirror/go-blog # download it from GitHub
 $ go install github.com/mooxmirror/go-blog # install dependencies, build it
-$ $GOPATH/bin/go-blog -reset -blog="my-blog-name" # resets your blog folder, starts the server
-$ $GOPATH/bin/go-blog -blog="my-blog-name" # starts the server without reset
+$ $GOPATH/bin/blog -reset -blog="example-blog" # resets your blog folder, starts the server
+$ $GOPATH/bin/blog -blog="example-blog" # starts the server without reset
 ```
 
 ## Folder structure
 ```
 /
-  /go-blog (runnable)
-  /my-blog-name (folder)
+  /blog (runnable)
+  /example-blog (folder)
     /config.json
     /posts
       2015-12-31.md
