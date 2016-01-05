@@ -2,10 +2,10 @@ package templates
 
 import (
 	"html/template"
-	"github.com/mooxmirror/blog/posts"
 )
 
 const (
+	templatesFolder = "templates"
 	baseName = "base"
 	postName = "post"
 	indexName = "index"
@@ -17,9 +17,12 @@ var (
 	BaseTemplate, PostTemplate, IndexTemplate, IndexEntryTemplate *template.Template
 )
 
+// load all required templates
 func Load(folder string) {
+	folder += "/" + templatesFolder
+
 	BaseTemplate = template.Must(template.New(baseName).ParseFiles(folder + "/" + baseName + fileExtension))
 	PostTemplate = template.Must(template.New(postName).ParseFiles(folder + "/" + postName + fileExtension))
-	IndexTemplate = template.Must(template.New(indexName).parseFiles(folder + "/" + indexName + fileExtension))
-	IndexEntryTemplate = template.Must(template.New(indexEntryName).parseFiles(folder + "/" + indexEntryName + fileExtension))
+	//IndexTemplate = template.Must(template.New(indexName).ParseFiles(folder + "/" + indexName + fileExtension))
+	//IndexEntryTemplate = template.Must(template.New(indexEntryName).ParseFiles(folder + "/" + indexEntryName + fileExtension))
 }

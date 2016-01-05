@@ -7,7 +7,8 @@ import (
 
 type Config struct {
 	HostAddress string `json:"host"`
-	BlogName string `json:"name"`
+	BlogTitle string `json:"title"`
+	BlogSubtitle string `json:"subtitle"`
 	HostCountry string `json:"country"`
 }
 
