@@ -7,9 +7,12 @@ import (
 
 type Config struct {
 	HostAddress string `json:"host"`
+	HostCountry string `json:"country"`
 	BlogTitle string `json:"title"`
 	BlogSubtitle string `json:"subtitle"`
-	HostCountry string `json:"country"`
+	BlogAuthor string `json:"author"`
+	BlogEmail string `json:"email"`
+	BlogUrl string `json:"url"`
 }
 
 func GetConfig(file string) (Config, error) {
@@ -26,4 +29,3 @@ func GetConfig(file string) (Config, error) {
 
 	return config, nil
 }
-

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"html/template"
 	"github.com/gorilla/mux"
 	"github.com/mooxmirror/blog/config"
 	"github.com/mooxmirror/blog/templates"
@@ -19,20 +18,12 @@ func HelloHandler(w http.ResponseWriter, r *http.Request) {
 
 func PostHandler(w http.ResponseWriter, r *http.Request) {
 	post := posts.PublicPosts[0]
-	/*context := struct {
-		BlogTitle, BlogSubtitle, BlogAuthor, BlogYear, BlogEmail string
-		PostTitle, PostSubtitle string
-		PostContent template.HTML
-	}*/
-	postContext := struct {
-		PostTitle, PostSubtitle, PostDate string
-		PostContent template.HTML
-	}{post.Title, post.Subtitle, post.PublishDate.String(), template.HTML(post.HTMLContent)}
+	context := templates.GetPostContext(cfg, post)
 
-	renderError := templates.PostTemplate.Execute(w, postContext)
+	renderError := templates.PostTemplate.Execute(w, context)
 	if renderError != nil {
 		log.Fatal(renderError)
-		fmt.Fprintln(w, renderError)
+		fmt.Fprintln(w, "Sorry, an error occured. Please try again later.")
 		return
 	}
 }

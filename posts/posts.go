@@ -67,7 +67,6 @@ func Load(folder string) {
 		header, body, headerActive := "{\n", "", true
 		for inputScanner.Scan() {
 			line := inputScanner.Text()
-			log.Println("Read line", line)
 			if headerActive {
 				if line == "---" {
 					headerActive = false
@@ -79,8 +78,6 @@ func Load(folder string) {
 			}
 		}
 		header += "}"
-		log.Println(header)
-		log.Println(body)
 
 		var headerData struct {
 			Title string `json:"title"`
