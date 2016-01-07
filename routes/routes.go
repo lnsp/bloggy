@@ -41,5 +41,6 @@ func Setup(configuration config.Config) (*mux.Router) {
 	cfg = configuration
 	r := mux.NewRouter()
 	r.HandleFunc("/", HelloHandler)
+	r.HandleFunc("/post", PostHandler)
 	return r
 }

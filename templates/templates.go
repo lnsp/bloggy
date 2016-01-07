@@ -21,8 +21,8 @@ var (
 func Load(folder string) {
 	folder += "/" + templatesFolder
 
-	BaseTemplate = template.Must(template.New(baseName).ParseFiles(folder + "/" + baseName + fileExtension))
-	PostTemplate = template.Must(template.New(postName).ParseFiles(folder + "/" + postName + fileExtension))
+	BaseTemplate = template.Must(template.ParseFiles(folder + "/" + baseName + fileExtension))
+	PostTemplate = template.Must(template.ParseFiles(folder + "/" + postName + fileExtension))
 	//IndexTemplate = template.Must(template.New(indexName).ParseFiles(folder + "/" + indexName + fileExtension))
 	//IndexEntryTemplate = template.Must(template.New(indexEntryName).ParseFiles(folder + "/" + indexEntryName + fileExtension))
 }
