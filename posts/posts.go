@@ -96,7 +96,7 @@ func Load(folder string) {
 		}
 
 		// parse Date from header data
-		date, parseError := time.Parse("2015-12-31", headerData.PublishDate)
+		date, parseError := time.Parse("2006-Jan-02", headerData.PublishDate)
 		if parseError != nil {
 			log.Fatal(parseError)
 			os.Exit(1)
