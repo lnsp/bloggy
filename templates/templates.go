@@ -38,7 +38,6 @@ var (
 	BaseTemplate, PostTemplate, IndexTemplate *template.Template
 )
 
-// load all required templates
 func Load(folder string) {
 	folder += "/" + templatesFolder
 
