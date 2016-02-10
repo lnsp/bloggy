@@ -1,4 +1,4 @@
-# blog
+# bloggy
 **Remember: This is heavily Work-in-Progress and far from being a stable software.**
 
 This is a blog system I am currently developing. It is focused on simplicity and conventions over configuration. I recommend to proxy the service using NGINX or comparable software.
