@@ -2,10 +2,13 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/go-yaml/yaml"
@@ -21,6 +24,7 @@ type FileHeader struct {
 	Title       string `yaml:"title"`
 	Subtitle    string `yaml:"subtitle"`
 	PublishDate string `yaml:"date"`
+	Slug        string `yaml:"slug"`
 }
 
 // Post is a structure to store a posts title, subtitle, publishing date and content.
@@ -29,6 +33,7 @@ type Post struct {
 	PublishDate     time.Time
 	MDContent       string
 	HTMLContent     string
+	Slug            string
 }
 
 // ByAge implements a interface to sort a slice of posts by publishing date.
@@ -41,7 +46,7 @@ func (b ByAge) Swap(i, j int) {
 	b[i], b[j] = b[j], b[i]
 }
 func (b ByAge) Less(i, j int) bool {
-	return b[i].PublishDate.Unix() < b[j].PublishDate.Unix()
+	return b[i].PublishDate.Unix() > b[j].PublishDate.Unix()
 }
 
 // BlogPosts is the slice of published posts.
@@ -54,9 +59,14 @@ func (p *Post) Render() {
 	Trace.Println("Rendering post", p.Title)
 }
 
+// GetURL generates the absolute URL from /.
+func (p Post) GetURL() string {
+	return PostBaseURL + "/" + p.Slug
+}
+
 // NewPost creates a new post with a specified title, subtitle, publishing date and content.
-func NewPost(title, subtitle string, date time.Time, content string) Post {
-	p := Post{title, subtitle, date, content, ""}
+func NewPost(title, subtitle string, date time.Time, content, slug string) Post {
+	p := Post{title, subtitle, date, content, "", slug}
 	p.Render()
 	return p
 }
@@ -106,7 +116,11 @@ func parsePostFile(file string) (Post, error) {
 		return Post{}, parseError
 	}
 
-	return NewPost(headerData.Title, headerData.Subtitle, date, body), nil
+	if len(headerData.Slug) == 0 {
+		headerData.Slug = strings.TrimSuffix(file, filepath.Ext(file))
+	}
+
+	return NewPost(headerData.Title, headerData.Subtitle, date, body, strings.ToLower(headerData.Slug)), nil
 }
 
 // LoadPosts loads all published posts from the blog folder.
@@ -145,4 +159,14 @@ func GetLatestsPosts(count int) []Post {
 		return BlogPosts
 	}
 	return BlogPosts[:count]
+}
+
+// FindPost returns a post with the specified slug.
+func FindPost(slug string) (*Post, error) {
+	for _, p := range BlogPosts {
+		if p.Slug == slug {
+			return &p, nil
+		}
+	}
+	return nil, errors.New("Post not found.")
 }
