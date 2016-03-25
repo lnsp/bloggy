@@ -7,10 +7,13 @@ Usage:
 Available flags are:
 
 	--reset
-		Resets the blog folder and deletes all files.
+		Reset the blog folder and deletes all files.
 
 	--blog="my-blog"
-		Sets the source folder for templates and posts.
+		Set the source folder for templates and posts.
+
+	--repo="https://github.com/lnsp/example-blog"
+		Change the git source repository for new blogs
 */
 package main
 
