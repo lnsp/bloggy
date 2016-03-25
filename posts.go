@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -29,11 +30,12 @@ type FileHeader struct {
 
 // Post is a structure to store a posts title, subtitle, publishing date and content.
 type Post struct {
-	Title, Subtitle string
-	PublishDate     time.Time
-	MDContent       string
-	HTMLContent     string
-	Slug            string
+	Title       string
+	Subtitle    string
+	PublishDate time.Time
+	MDContent   string
+	HTMLContent string
+	Slug        string
 }
 
 // ByAge implements a interface to sort a slice of posts by publishing date.
@@ -56,12 +58,13 @@ var BlogPosts []Post
 func (p *Post) Render() {
 	output := blackfriday.MarkdownCommon([]byte(p.MDContent))
 	p.HTMLContent = string(bluemonday.UGCPolicy().SanitizeBytes([]byte(output)))
-	Trace.Println("Rendering post", p.Title)
 }
 
 // GetURL generates the absolute URL from /.
 func (p Post) GetURL() string {
-	return PostBaseURL + "/" + p.Slug
+	rgx, _ := regexp.Compile("[^A-Za-z\\-]")
+	slugged := rgx.ReplaceAllString(p.Slug, "")
+	return PostBaseURL + "/" + strings.ToLower(slugged)
 }
 
 // NewPost creates a new post with a specified title, subtitle, publishing date and content.
@@ -120,7 +123,7 @@ func parsePostFile(file string) (Post, error) {
 		headerData.Slug = strings.TrimSuffix(file, filepath.Ext(file))
 	}
 
-	return NewPost(headerData.Title, headerData.Subtitle, date, body, strings.ToLower(headerData.Slug)), nil
+	return NewPost(headerData.Title, headerData.Subtitle, date, body, headerData.Slug), nil
 }
 
 // LoadPosts loads all published posts from the blog folder.
