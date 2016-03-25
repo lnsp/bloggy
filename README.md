@@ -1,10 +1,10 @@
-# bloggy
+# Bloggy
 **Remember: This is heavily Work-in-Progress and far from being a stable software.**
 
 This is a blog system I am currently developing. It is focused on simplicity and conventions over configuration. I recommend to proxy the service using NGINX or comparable software.
 
-## Set up blog
-You need to have a working Go environment installed (v1.5+).
+## Getting started
+You need to have Git and a working Go environment installed (v1.5+).
 
 ```bash
 $ # download and install it from GitHub
