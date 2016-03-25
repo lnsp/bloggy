@@ -5,6 +5,8 @@ import (
 	"html/template"
 	"path"
 	"time"
+
+	humanize "github.com/dustin/go-humanize"
 )
 
 // TemplatesFolder is the default folder for templates.
@@ -46,7 +48,7 @@ func GetPostContext(post Post) PostContext {
 		GetBaseContext(),
 		post.Title,
 		post.Subtitle,
-		post.PublishDate.String(),
+		humanize.Time(post.PublishDate),
 		template.HTML(post.HTMLContent),
 	}
 }
@@ -66,11 +68,11 @@ var (
 )
 
 // LoadTemplates loads the templates from the blog folder.
-func LoadTemplates(folder string) {
-	baseName := path.Join(folder, TemplatesFolder, "base.html")
-	postName := path.Join(folder, TemplatesFolder, "post.html")
-	indexName := path.Join(folder, TemplatesFolder, "index.html")
-	entryName := path.Join(folder, TemplatesFolder, "entry.html")
+func LoadTemplates() {
+	baseName := path.Join(BlogFolder, TemplatesFolder, "base.html")
+	postName := path.Join(BlogFolder, TemplatesFolder, "post.html")
+	indexName := path.Join(BlogFolder, TemplatesFolder, "index.html")
+	entryName := path.Join(BlogFolder, TemplatesFolder, "entry.html")
 
 	PostTemplate = template.Must(template.New("post").ParseFiles(baseName, postName))
 	IndexTemplate = template.Must(template.New("index").ParseFiles(baseName, indexName, entryName))

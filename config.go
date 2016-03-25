@@ -21,8 +21,8 @@ type BlogConfig struct {
 }
 
 // LoadConfig loads the blog configuration.
-func LoadConfig(folder string) error {
-	contents, readError := ioutil.ReadFile(path.Join(folder, DefaultConfigFile))
+func LoadConfig() error {
+	contents, readError := ioutil.ReadFile(path.Join(BlogFolder, DefaultConfigFile))
 	if readError != nil {
 		return readError
 	}

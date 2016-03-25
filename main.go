@@ -16,7 +16,7 @@ package main
 
 import (
 	"flag"
-	"io/ioutil"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -29,6 +29,8 @@ const DefaultBlogRepository = "https://github.com/mooxmirror/example-blog"
 var (
 	// GlobalConfig is the global app configuration.
 	GlobalConfig BlogConfig
+	// BlogFolder is the source folder.
+	BlogFolder string
 	// Trace logger
 	Trace *log.Logger
 	// Info logger
@@ -39,22 +41,41 @@ var (
 	Error *log.Logger
 )
 
+func runCLI() {
+	for {
+		fmt.Print("> ")
+		var input string
+		fmt.Scanln(&input)
+
+		switch input {
+		case "reload":
+			// Reload all templates and posts
+			LoadTemplates()
+			LoadPosts()
+		case "stop":
+			// Stops the server
+			Info.Println("Forcing shutdown")
+			os.Exit(1)
+		}
+	}
+}
+
 func initLogger() {
-	Trace = log.New(ioutil.Discard, "[Trace] ", log.Ltime|log.Lshortfile)
+	Trace = log.New(os.Stdout, "[Trace] ", log.Ltime|log.Lshortfile)
 	Info = log.New(os.Stdout, "[Info] ", log.Ltime|log.Lshortfile)
 	Warning = log.New(os.Stdout, "[Warning] ", log.Ltime|log.Lshortfile)
 	Error = log.New(os.Stderr, "[Error] ", log.Ltime|log.Lshortfile)
 }
 
 // ResetBlog resets the blog, deletes all files and clones the source repo.
-func ResetBlog(folder string) error {
+func ResetBlog() error {
 	// delete existing folder
-	remError := os.RemoveAll(folder)
+	remError := os.RemoveAll(BlogFolder)
 	if remError != nil && !os.IsNotExist(remError) {
 		return remError
 	}
 
-	cloneCmd := exec.Command("git", "clone", DefaultBlogRepository, folder)
+	cloneCmd := exec.Command("git", "clone", DefaultBlogRepository, BlogFolder)
 	// run git
 	cloneStartError := cloneCmd.Start()
 	// failed to run git
@@ -75,15 +96,16 @@ func main() {
 	initLogger()
 
 	// parse command line arguments
-	resetBlog := flag.Bool("reset", false, "Resets the blog data")
-	blogFolder := flag.String("blog", "my-blog", "Sets the data source folder")
+	resetFlag := flag.Bool("reset", false, "Resets the blog data")
+	folderFlag := flag.String("blog", "my-blog", "Sets the data source folder")
 
 	flag.Parse()
 
+	BlogFolder = *folderFlag
 	// check if reset
-	if *resetBlog {
-		Info.Println("Resetting blog folder:", *blogFolder)
-		resetError := ResetBlog(*blogFolder)
+	if *resetFlag {
+		Info.Println("Resetting blog folder:", BlogFolder)
+		resetError := ResetBlog()
 		if resetError != nil {
 			Error.Println("Failed to reset blog:", resetError)
 			os.Exit(1)
@@ -91,14 +113,15 @@ func main() {
 	}
 
 	// load configuration file from disk
-	loadError := LoadConfig(*blogFolder)
+	loadError := LoadConfig()
 	if loadError != nil {
 		Error.Println("Failed to load configuration:", loadError)
 		os.Exit(1)
 	}
-	LoadTemplates(*blogFolder)
-	LoadPosts(*blogFolder)
+	LoadTemplates()
+	LoadPosts()
 
+	go runCLI()
 	router := LoadRoutes()
 	serverError := http.ListenAndServe(GlobalConfig.HostAddress, router)
 

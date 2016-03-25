@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"io/ioutil"
 	"os"
+	"path"
 	"sort"
 	"time"
 
@@ -11,6 +12,9 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/russross/blackfriday"
 )
+
+// PostsFolder is the default path for posts.
+const PostsFolder = "posts"
 
 // FileHeader is a structure to store post file header data.
 type FileHeader struct {
@@ -57,10 +61,58 @@ func NewPost(title, subtitle string, date time.Time, content string) Post {
 	return p
 }
 
+func parsePostFile(file string) (Post, error) {
+	// Open the post file
+	input, openError := os.Open(path.Join(BlogFolder, PostsFolder, file))
+	if openError != nil {
+		return Post{}, openError
+	}
+	defer input.Close()
+
+	// Scan all input lines
+	inputScanner := bufio.NewScanner(input)
+	inputScanner.Split(bufio.ScanLines)
+
+	header, body, headerIndex := "", "", 0
+	for inputScanner.Scan() {
+		line := inputScanner.Text()
+		switch headerIndex {
+		case 0:
+			if line == "---" {
+				headerIndex = 1
+			}
+		case 1:
+			if line == "---" {
+				headerIndex = 2
+			} else {
+				header += line + "\n"
+			}
+		case 2:
+			body += line + "\n"
+		}
+	}
+
+	headerData := FileHeader{}
+
+	// Decode JSON header
+	yamlError := yaml.Unmarshal([]byte(header), &headerData)
+	if yamlError != nil {
+		return Post{}, yamlError
+	}
+
+	// parse Date from header data
+	date, parseError := time.Parse("2006-Jan-02", headerData.PublishDate)
+	if parseError != nil {
+		return Post{}, parseError
+	}
+
+	return NewPost(headerData.Title, headerData.Subtitle, date, body), nil
+}
+
 // LoadPosts loads all published posts from the blog folder.
-func LoadPosts(folder string) {
+func LoadPosts() {
 	BlogPosts = make([]Post, 0)
-	dirEntries, readDirError := ioutil.ReadDir(folder + "/posts")
+	dirEntries, readDirError := ioutil.ReadDir(path.Join(BlogFolder, PostsFolder))
 	if readDirError != nil {
 		Warning.Println("Failed to open post folder:", readDirError)
 		return
@@ -71,53 +123,12 @@ func LoadPosts(folder string) {
 			continue
 		}
 
-		// Open the post file
-		input, openError := os.Open(folder + "/posts/" + entry.Name())
-		if openError != nil {
-			Warning.Println("Failed to read post")
-			continue
-		}
-		defer input.Close()
-
-		// Scan all input lines
-		inputScanner := bufio.NewScanner(input)
-		inputScanner.Split(bufio.ScanLines)
-
-		header, body, headerIndex := "", "", 0
-		for inputScanner.Scan() {
-			line := inputScanner.Text()
-			switch headerIndex {
-			case 0:
-				if line == "---" {
-					headerIndex = 1
-				}
-			case 1:
-				if line == "---" {
-					headerIndex = 2
-				} else {
-					header += line + "\n"
-				}
-			case 2:
-				body += line + "\n"
-			}
-		}
-
-		headerData := FileHeader{}
-
-		// Decode JSON header
-		yamlError := yaml.Unmarshal([]byte(header), &headerData)
-		if yamlError != nil {
-			Warning.Println("Failed parsing YAML:", yamlError)
-			continue
-		}
-
-		// parse Date from header data
-		date, parseError := time.Parse("2006-Jan-02", headerData.PublishDate)
+		post, parseError := parsePostFile(entry.Name())
 		if parseError != nil {
-			Warning.Println("Failed to parse date:", parseError)
+			Warning.Println("Failed to parse file:", parseError)
 			continue
 		}
-		BlogPosts = append(BlogPosts, NewPost(headerData.Title, headerData.Subtitle, date, body))
+		BlogPosts = append(BlogPosts, post)
 		Info.Println("Read post file", entry.Name())
 	}
 
