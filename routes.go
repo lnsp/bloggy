@@ -58,6 +58,6 @@ func LoadRoutes() *mux.Router {
 	r := mux.NewRouter()
 	r.HandleFunc(IndexBaseURL, IndexHandler)
 	r.HandleFunc(PostBaseURL+"/{slug}", PostHandler)
-	Info.Println("Initialized default router")
+	Trace.Println("Initialized default router")
 	return r
 }

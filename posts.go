@@ -143,13 +143,12 @@ func LoadPosts() {
 			continue
 		}
 		BlogPosts = append(BlogPosts, post)
-		Info.Println("Read post file", entry.Name())
+		Trace.Println("Read post file", entry.Name())
 	}
 
 	// Sort all posts by age
-	Info.Println("Sorting posts by age")
 	sort.Sort(ByAge(BlogPosts))
-	Info.Println("Serving", len(BlogPosts), "blog posts")
+	Trace.Println("Serving", len(BlogPosts), "blog posts")
 }
 
 // GetLatestsPosts returns a slice of the latest posts.
