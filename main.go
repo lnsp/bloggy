@@ -29,7 +29,7 @@ import (
 )
 
 // DefaultBlogRepository is the default example blog repository.
-const DefaultBlogRepository = "https://github.com/mooxmirror/example-blog"
+const DefaultBlogRepository = "https://github.com/lnsp/example-blog"
 
 var (
 	// GlobalConfig is the global app configuration.
