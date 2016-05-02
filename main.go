@@ -118,6 +118,7 @@ func main() {
 	resetFlag := flag.Bool("reset", false, "Resets the blog data")
 	folderFlag := flag.String("blog", "my-blog", "Sets the data source folder")
 	repositoryFlag := flag.String("repo", DefaultBlogRepository, "Change the git source repository for resets")
+	interactiveFlag := flag.Bool("i", false, "Runs an interactive CLI")
 	flag.Parse()
 
 	BlogFolder = *folderFlag
@@ -140,7 +141,9 @@ func main() {
 	LoadTemplates()
 	LoadPosts()
 
-	go runCLI()
+	if *interactiveFlag {
+		go runCLI()
+	}
 	router := LoadRoutes()
 	serverError := http.ListenAndServe(GlobalConfig.HostAddress, router)
 
