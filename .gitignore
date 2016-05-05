@@ -23,6 +23,5 @@ _testmain.go
 *.test
 *.prof
 *.swp
-example-blog
-example-blog/*
-blog
+my-blog/*
+bloggy
