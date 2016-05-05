@@ -14,6 +14,12 @@ Available flags are:
 
 	--repo="https://github.com/lnsp/example-blog"
 		Change the git source repository for new blogs
+		
+	-i
+		Enables the interactive command line interface.
+		
+	-c="certificate"
+		Loads the certificate (.key/.pem) and hosts a HTTPS server.
 */
 package main
 
