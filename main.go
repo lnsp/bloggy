@@ -14,12 +14,15 @@ Available flags are:
 
 	--repo="https://github.com/lnsp/example-blog"
 		Change the git source repository for new blogs
-		
+
 	-i
 		Enables the interactive command line interface.
-		
+
 	-c="certificate"
-		Loads the certificate (.key/.pem) and hosts a HTTPS server.
+		Loads the certificate file and enables HTTPS.
+
+	-k="key"
+		Loads the private key file. Required if HTTPS is enabled.
 */
 package main
 
@@ -125,7 +128,8 @@ func main() {
 	folderFlag := flag.String("blog", "my-blog", "Sets the data source folder")
 	repositoryFlag := flag.String("repo", DefaultBlogRepository, "Change the git source repository for resets")
 	interactiveFlag := flag.Bool("i", false, "Runs an interactive CLI")
-	certificateFlag := flag.String("c", "", "The base certificate path (appends .key and .pem)")
+	certFlag := flag.String("c", "", "Certificate file for HTTPS")
+	keyFlag := flag.String("k", "", "Private key file for HTTPS")
 	flag.Parse()
 
 	BlogFolder = *folderFlag
@@ -152,21 +156,10 @@ func main() {
 		go runCLI()
 	}
 	router := http.Handler(LoadRoutes())
-	if *certificateFlag != "" {
-		certFile := *certificateFlag + ".pem"
-		keyFile := *certificateFlag + ".key"
+	if *certFlag != "" {
 		router = hstsHandler(router)
-		Info.Println("Enabled TLS/SSL using certificates", certFile, "and", keyFile)
-		go func() {
-			err := http.ListenAndServeTLS(GlobalConfig.HostAddressTLS, certFile, keyFile, router)
-			if err != nil {
-				panic(err)
-			}
-		}()
+		Info.Println("Enabled TLS/SSL using certificates", certFlag, "and", keyFlag)
+		go Error.Println(http.ListenAndServeTLS(GlobalConfig.HostAddressTLS, certFile, keyFile, router))
 	}
-	
-	err := http.ListenAndServe(GlobalConfig.HostAddress, router)
-	if err != nil {
-		panic(err)
-	}
+	Error.Println(http.ListenAndServe(GlobalConfig.HostAddress, router))
 }
