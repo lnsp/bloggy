@@ -158,8 +158,10 @@ func main() {
 	router := http.Handler(LoadRoutes())
 	if *certFlag != "" {
 		router = hstsHandler(router)
-		Info.Println("Enabled TLS/SSL using certificates", certFlag, "and", keyFlag)
-		go Error.Println(http.ListenAndServeTLS(GlobalConfig.HostAddressTLS, *certFlag, *keyFlag, router))
+		Info.Println("Enabled TLS/SSL using certificates", *certFlag, "and", *keyFlag)
+		go func() {
+			Error.Println(http.ListenAndServeTLS(GlobalConfig.HostAddressTLS, *certFlag, *keyFlag, router))
+		}()
 	}
 	Error.Println(http.ListenAndServe(GlobalConfig.HostAddress, router))
 }
