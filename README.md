@@ -21,23 +21,20 @@ $ $GOPATH/bin/bloggy -blog="example-blog"
 
 ## Folder structure
 ```
-|   bloggy
-|
-\---example-blog
-    |   config.json
-    |   LICENSE
-    |   README.md
-    |
-    +---posts
-    |       first-post.md
-    |       second-post.md
-    |
-    \---templates
-            base.html
-            entry.html
-            error.html
-            index.html
-            post.html
+my-blog
+├── config.json
+├── posts
+│   ├── first-post.md
+│   ├── second-post.md
+│   └── static-power-activated.md
+├── static (images, stylesheets, scripts)
+│   └── screenshot.png
+└── templates
+    ├── base.html
+    ├── entry.html
+    ├── error.html
+    ├── index.html
+    └── post.html
 ```
 
 The **config.json** file stores basic configuration options like the blog's name, host address etc.
