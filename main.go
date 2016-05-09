@@ -55,6 +55,13 @@ var (
 	Error *log.Logger
 	// Logging flags
 	logFlags = log.Ltime | log.Lshortfile
+	// Other flags
+	resetFlag       = flag.Bool("reset", false, "Resets the blog data")
+	folderFlag      = flag.String("blog", "my-blog", "Sets the data source folder")
+	repositoryFlag  = flag.String("repo", DefaultBlogRepository, "Change the git source repository for resets")
+	interactiveFlag = flag.Bool("i", false, "Runs an interactive CLI")
+	certFlag        = flag.String("c", "", "Certificate file for HTTPS")
+	keyFlag         = flag.String("k", "", "Private key file for HTTPS")
 )
 
 func runCLI() {
@@ -124,12 +131,6 @@ func main() {
 	initLogger(ioutil.Discard)
 
 	// parse command line arguments
-	resetFlag := flag.Bool("reset", false, "Resets the blog data")
-	folderFlag := flag.String("blog", "my-blog", "Sets the data source folder")
-	repositoryFlag := flag.String("repo", DefaultBlogRepository, "Change the git source repository for resets")
-	interactiveFlag := flag.Bool("i", false, "Runs an interactive CLI")
-	certFlag := flag.String("c", "", "Certificate file for HTTPS")
-	keyFlag := flag.String("k", "", "Private key file for HTTPS")
 	flag.Parse()
 
 	BlogFolder = *folderFlag
@@ -149,14 +150,18 @@ func main() {
 		Error.Println("Failed to load configuration:", loadError)
 		os.Exit(1)
 	}
+	// Load all posts and templates
 	LoadTemplates()
 	LoadPosts()
 
+	// Start interactive command line interface
 	if *interactiveFlag {
 		go runCLI()
 	}
+	// Create handler
 	router := http.Handler(LoadRoutes())
 	if *certFlag != "" {
+		// Enable HSTS header if HTTPS is enabled
 		router = hstsHandler(router)
 		Info.Println("Enabled TLS/SSL using certificates", *certFlag, "and", *keyFlag)
 		go func() {
