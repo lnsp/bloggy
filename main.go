@@ -35,6 +35,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 )
 
 // DefaultBlogRepository is the default example blog repository.
@@ -133,7 +134,12 @@ func main() {
 	// parse command line arguments
 	flag.Parse()
 
-	BlogFolder = *folderFlag
+	cwd, err := os.Getwd()
+	if err != nil {
+		Error.Println("Could not determine working directory")
+		os.Exit(1)
+	}
+	BlogFolder = path.Join(cwd, *folderFlag)
 	// check if reset
 	if *resetFlag {
 		Info.Println("Resetting blog folder:", BlogFolder)

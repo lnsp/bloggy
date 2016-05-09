@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"path"
 
 	"github.com/gorilla/mux"
 )
@@ -12,6 +13,9 @@ const (
 	IndexBaseURL = "/"
 	// PostBaseURL for routing post requests.
 	PostBaseURL = "/post"
+	// AssetBaseURL for routing asset requests.
+	StaticBaseURL = "/static/"
+	StaticFolder  = "static"
 )
 
 // ErrorHandler handles the errors.
@@ -56,6 +60,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 // LoadRoutes configures a new blog router.
 func LoadRoutes() *mux.Router {
 	r := mux.NewRouter()
+	r.PathPrefix(StaticBaseURL).Handler(http.StripPrefix(StaticBaseURL, http.FileServer(http.Dir(path.Join(BlogFolder, StaticFolder)))))
 	r.HandleFunc(IndexBaseURL, IndexHandler)
 	r.HandleFunc(PostBaseURL+"/{slug}", PostHandler)
 	Trace.Println("Initialized default router")
