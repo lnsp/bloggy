@@ -46,14 +46,8 @@ var (
 	GlobalConfig BlogConfig
 	// BlogFolder is the source folder.
 	BlogFolder string
-	// Trace logger
-	Trace *log.Logger
-	// Info logger
-	Info *log.Logger
-	// Warning logger
-	Warning *log.Logger
-	// Error logger
-	Error *log.Logger
+	// Loggers
+	Trace, Info, Warning, Error *log.Logger
 	// Logging flags
 	logFlags = log.Ltime | log.Lshortfile
 	// Other flags
