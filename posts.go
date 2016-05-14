@@ -18,7 +18,10 @@ import (
 )
 
 // PostsFolder is the default path for posts.
-const PostsFolder = "posts"
+const (
+	PostsFolder = "posts"
+	PagesFolder = "pages"
+)
 
 // FileHeader is a structure to store post file header data.
 type FileHeader struct {
@@ -52,7 +55,7 @@ func (b ByAge) Less(i, j int) bool {
 }
 
 // BlogPosts is the slice of published posts.
-var BlogPosts []Post
+var BlogPosts, BlogPages []Post
 
 // Render generates HTML from a posts markdown content.
 func (p *Post) Render() {
@@ -74,9 +77,9 @@ func NewPost(title, subtitle string, date time.Time, content, slug string) Post 
 	return p
 }
 
-func parsePostFile(file string) (Post, error) {
+func parsePostFile(folder, file string) (Post, error) {
 	// Open the post file
-	input, openError := os.Open(path.Join(BlogFolder, PostsFolder, file))
+	input, openError := os.Open(path.Join(BlogFolder, folder, file))
 	if openError != nil {
 		return Post{}, openError
 	}
@@ -140,7 +143,7 @@ func LoadPosts() {
 			continue
 		}
 
-		post, parseError := parsePostFile(entry.Name())
+		post, parseError := parsePostFile(PostsFolder, entry.Name())
 		if parseError != nil {
 			Warning.Println("Failed to parse file:", parseError)
 			continue
@@ -152,6 +155,33 @@ func LoadPosts() {
 	// Sort all posts by age
 	sort.Sort(ByAge(BlogPosts))
 	Trace.Println("Serving", len(BlogPosts), "blog posts")
+}
+
+// LoadPages loads all pages from the pages/ folder.
+func LoadPages() {
+	BlogPages = make([]Post, 0)
+	dirEntries, readDirError := ioutil.ReadDir(path.Join(BlogFolder, PagesFolder))
+	if readDirError != nil {
+		Warning.Println("Failed to open page folder:", readDirError)
+		return
+	}
+	for _, entry := range dirEntries {
+		// Ignore directories
+		if entry.IsDir() {
+			continue
+		}
+
+		page, parseError := parsePostFile(PagesFolder, entry.Name())
+		if parseError != nil {
+			Warning.Println("Failed to parse file:", parseError)
+			continue
+		}
+		BlogPages = append(BlogPages, page)
+		Trace.Println("Read page file", entry.Name())
+	}
+
+	// Sort all posts by age
+	Trace.Println("Serving", len(BlogPages), "blog pages")
 }
 
 // GetLatestsPosts returns a slice of the latest posts.
