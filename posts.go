@@ -202,3 +202,13 @@ func FindPost(slug string) (*Post, error) {
 	}
 	return nil, errors.New("Post not found.")
 }
+
+// FindPage returns a post with the specified slug.
+func FindPage(name string) (*Post, error) {
+	for _, p := range BlogPages {
+		if p.Slug == name {
+			return &p, nil
+		}
+	}
+	return nil, errors.New("Page not found.")
+}

@@ -57,12 +57,28 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// PageHandler handles a page request and displays the page.
+func PageHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	page, notFoundError := FindPage(vars["name"])
+	if notFoundError != nil {
+		ErrorHandler(w, notFoundError, 404)
+		return
+	}
+	renderError := PostTemplate.ExecuteTemplate(w, "base", GetPostContext(*page))
+	if renderError != nil {
+		ErrorHandler(w, renderError, 500)
+		return
+	}
+}
+
 // LoadRoutes configures a new blog router.
 func LoadRoutes() *mux.Router {
 	r := mux.NewRouter()
 	r.PathPrefix(StaticBaseURL).Handler(http.StripPrefix(StaticBaseURL, http.FileServer(http.Dir(path.Join(BlogFolder, StaticFolder)))))
 	r.HandleFunc(IndexBaseURL, IndexHandler)
 	r.HandleFunc(PostBaseURL+"/{slug}", PostHandler)
+	r.HandleFunc("/{name}", PageHandler)
 	Trace.Println("Initialized default router")
 	return r
 }
