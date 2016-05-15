@@ -70,6 +70,7 @@ func runCLI() {
 			// Reload all templates and posts
 			LoadTemplates()
 			LoadPosts()
+			LoadPages()
 			Info.Println("Reloaded posts and templates")
 		case "stop":
 			// Stops the server
@@ -153,6 +154,7 @@ func main() {
 	// Load all posts and templates
 	LoadTemplates()
 	LoadPosts()
+	LoadPages()
 
 	// Start interactive command line interface
 	if *interactiveFlag {
