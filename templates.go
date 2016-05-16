@@ -52,8 +52,8 @@ func GetBaseContext() BaseContext {
 }
 
 // GetPostContext creates a PostContext from the global blog configuration and a specified post.
-func GetPostContext(post Post) PostContext {
-	return PostContext{
+func GetPostContext(post *Post) *PostContext {
+	return &PostContext{
 		GetBaseContext(),
 		post.Title,
 		post.Subtitle,

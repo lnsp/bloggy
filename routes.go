@@ -49,7 +49,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 		ErrorHandler(w, notFoundError, 404)
 		return
 	}
-	renderError := PostTemplate.ExecuteTemplate(w, "base", GetPostContext(*post))
+	renderError := PostTemplate.ExecuteTemplate(w, "base", post.Context)
 	if renderError != nil {
 		ErrorHandler(w, renderError, 500)
 		Error.Println("Failed to render template:", renderError)
@@ -65,7 +65,7 @@ func PageHandler(w http.ResponseWriter, r *http.Request) {
 		ErrorHandler(w, notFoundError, 404)
 		return
 	}
-	renderError := PostTemplate.ExecuteTemplate(w, "base", GetPostContext(*page))
+	renderError := PostTemplate.ExecuteTemplate(w, "base", page.Context)
 	if renderError != nil {
 		ErrorHandler(w, renderError, 500)
 		return
