@@ -39,6 +39,7 @@ type Post struct {
 	MDContent   string
 	HTMLContent string
 	Slug        string
+	Context     *PostContext
 }
 
 // ByAge implements a interface to sort a slice of posts by publishing date.
@@ -72,7 +73,7 @@ func (p Post) GetURL() string {
 
 // NewPost creates a new post with a specified title, subtitle, publishing date and content.
 func NewPost(title, subtitle string, date time.Time, content, slug string) Post {
-	p := Post{title, subtitle, date, content, "", slug}
+	p := Post{title, subtitle, date, content, "", slug, nil}
 	p.Render()
 	return p
 }
@@ -148,6 +149,7 @@ func LoadPosts() {
 			Warning.Println("Failed to parse file:", parseError)
 			continue
 		}
+		post.Context = GetPostContext(&post)
 		BlogPosts = append(BlogPosts, post)
 		Trace.Println("Read post file", entry.Name())
 	}
@@ -176,6 +178,7 @@ func LoadPages() {
 			Warning.Println("Failed to parse file:", parseError)
 			continue
 		}
+		page.Context = GetPostContext(&page)
 		BlogPages = append(BlogPages, page)
 		Trace.Println("Read page file", entry.Name())
 	}
