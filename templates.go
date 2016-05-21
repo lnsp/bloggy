@@ -1,16 +1,33 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
+	"io"
 	"path"
+	"path/filepath"
+	"strings"
 	"time"
 
 	humanize "github.com/dustin/go-humanize"
 )
 
 // TemplatesFolder is the default folder for templates.
-const TemplatesFolder = "templates"
+const (
+	TemplateFolder = "templates"
+	displayFolder  = "displays"
+	includeFolder  = "includes"
+)
+
+var (
+	// BlogTemplates stores all required blog templates.
+	templates   map[string]*template.Template
+	blogContext *BaseContext
+	cachedPages map[string]*PageContext
+	cachedPosts map[string]*PostContext
+	cachedIndex *IndexContext
+)
 
 // BaseContext stores basic context information like title, author etc.
 type BaseContext struct {
@@ -27,10 +44,17 @@ type PostContext struct {
 	PostURL      string
 }
 
+type PageContext struct {
+	BaseContext
+	PageTitle   string
+	PageContent template.HTML
+	PostURL     string
+}
+
 // IndexContext stores index information like a list of posts.
 type IndexContext struct {
 	BaseContext
-	ListOfContents []Post
+	LatestPosts []Post
 }
 
 // ErrorContext stores error information.
@@ -39,62 +63,105 @@ type ErrorContext struct {
 	Message string
 }
 
-// GetBaseContext creates a BaseContext from the global blog configuration.
-func GetBaseContext() BaseContext {
-	return BaseContext{
-		GlobalConfig.BlogTitle,
-		GlobalConfig.BlogSubtitle,
-		GlobalConfig.BlogAuthor,
-		fmt.Sprint(time.Now().Year()),
-		GlobalConfig.BlogEmail,
-		GlobalConfig.BlogURL,
+// NewBaseContext creates a BaseContext from the global blog configuration.
+func NewBaseContext() *BaseContext {
+	if blogContext == nil {
+		blogContext = &BaseContext{
+			GlobalConfig.BlogTitle,
+			GlobalConfig.BlogSubtitle,
+			GlobalConfig.BlogAuthor,
+			fmt.Sprint(time.Now().Year()),
+			GlobalConfig.BlogEmail,
+			GlobalConfig.BlogURL,
+		}
 	}
+	return blogContext
 }
 
 // GetPostContext creates a PostContext from the global blog configuration and a specified post.
-func GetPostContext(post *Post) *PostContext {
-	return &PostContext{
-		GetBaseContext(),
-		post.Title,
-		post.Subtitle,
-		humanize.Time(post.PublishDate),
-		template.HTML(post.HTMLContent),
-		post.GetURL(),
+func NewPostContext(slug string) (*PostContext, error) {
+	context, ok := cachedPosts[slug]
+	if !ok {
+		post, ok := PostBySlug[slug]
+		if !ok {
+			return nil, errors.New("Post not found")
+		}
+		context = &PostContext{
+			*NewBaseContext(),
+			post.Title,
+			post.Subtitle,
+			humanize.Time(post.PublishDate),
+			template.HTML(Render(post)),
+			post.GetURL(),
+		}
+		cachedPosts[slug] = context
 	}
+	return context, nil
+}
+
+func NewPageContext(slug string) (*PageContext, error) {
+	context, ok := cachedPages[slug]
+	if !ok {
+		page, ok := PageBySlug[slug]
+		if !ok {
+			return nil, errors.New("Page not found")
+		}
+		context = &PageContext{
+			*NewBaseContext(),
+			page.Title,
+			template.HTML(Render(page)),
+			page.GetURL(),
+		}
+		cachedPages[slug] = context
+	}
+	return context, nil
 }
 
 // GetIndexContext creates a IndexContext from the global blog configuration and a list of posts.
-func GetIndexContext(posts []Post) IndexContext {
-	return IndexContext{GetBaseContext(), posts}
+func NewIndexContext(posts []Post) *IndexContext {
+	if cachedIndex == nil {
+		cachedIndex = &IndexContext{*NewBaseContext(), posts}
+	}
+	return cachedIndex
 }
 
 // GetErrorContext creates a ErrorContext from the error.
-func GetErrorContext(err error) ErrorContext {
-	return ErrorContext{GetBaseContext(), err.Error()}
+func NewErrorContext(err error) *ErrorContext {
+	return &ErrorContext{*NewBaseContext(), err.Error()}
 }
-
-var (
-	// BaseTemplate is the base template for all pages.
-	BaseTemplate *template.Template
-	// PostTemplate is the template for post pages.
-	PostTemplate *template.Template
-	// IndexTemplate is the template for index pages.
-	IndexTemplate *template.Template
-	// ErrorTemplate is the template for error pages.
-	ErrorTemplate *template.Template
-
-	//BlogTemplates []*template.Template
-)
 
 // LoadTemplates loads the templates from the blog folder.
 func LoadTemplates() {
-	baseName := path.Join(BlogFolder, TemplatesFolder, "base.html")
-	postName := path.Join(BlogFolder, TemplatesFolder, "post.html")
-	indexName := path.Join(BlogFolder, TemplatesFolder, "index.html")
-	entryName := path.Join(BlogFolder, TemplatesFolder, "entry.html")
-	errorName := path.Join(BlogFolder, TemplatesFolder, "error.html")
+	cachedPages = make(map[string]*PageContext)
+	cachedPosts = make(map[string]*PostContext)
+	templates = make(map[string]*template.Template)
 
-	PostTemplate = template.Must(template.New("post").ParseFiles(baseName, postName))
-	IndexTemplate = template.Must(template.New("index").ParseFiles(baseName, indexName, entryName))
-	ErrorTemplate = template.Must(template.New("error").ParseFiles(baseName, errorName))
+	displays, err := filepath.Glob(path.Join(BlogFolder, TemplateFolder, displayFolder, "*.html"))
+	if err != nil {
+		Error.Println("Error loading display templates:", err)
+		return
+	}
+	Trace.Println("Found displays:", strings.Join(displays, ","))
+
+	includes, err := filepath.Glob(path.Join(BlogFolder, TemplateFolder, includeFolder, "*.html"))
+	if err != nil {
+		Error.Println("Error loading include templates:", err)
+		return
+	}
+	Trace.Println("Found includes:", strings.Join(includes, ","))
+
+	for _, display := range displays {
+		files := append(includes, display)
+		name := strings.TrimSuffix(filepath.Base(display), filepath.Ext(display))
+		templates[name] = template.Must(template.New(name).ParseFiles(files...))
+		Trace.Println("Load display template:", name)
+	}
+}
+
+func RenderPage(w io.Writer, name string, context interface{}) error {
+	tmpl, ok := templates[name]
+	if !ok {
+		return errors.New("Template not found")
+	}
+	return tmpl.ExecuteTemplate(w, "base", context)
 }

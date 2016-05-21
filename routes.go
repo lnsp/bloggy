@@ -11,8 +11,10 @@ import (
 const (
 	// IndexBaseURL for routing index requests.
 	IndexBaseURL = "/"
+	// PageBaseURL for routing page requests.
+	PageBaseURL = "/page/"
 	// PostBaseURL for routing post requests.
-	PostBaseURL = "/post"
+	PostBaseURL = "/post/"
 	// AssetBaseURL for routing asset requests.
 	StaticBaseURL = "/static/"
 	StaticFolder  = "static"
@@ -22,21 +24,20 @@ const (
 func ErrorHandler(w http.ResponseWriter, err error, status int) {
 	w.WriteHeader(status)
 
-	renderError := ErrorTemplate.ExecuteTemplate(w, "base", GetErrorContext(err))
-	if renderError != nil {
-		Error.Println("Failed to render template:", renderError)
+	Error.Println(err)
+	err = RenderPage(w, "error", NewErrorContext(err))
+	if err != nil {
+		fmt.Fprintln(w, err.Error())
+		return
 	}
 }
 
 // IndexHandler handles the index page and displays a list of the recent blog posts.
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
-	posts := GetLatestsPosts(10)
-	context := GetIndexContext(posts)
-
-	renderError := IndexTemplate.ExecuteTemplate(w, "base", context)
-	if renderError != nil {
-		Warning.Println("Failed to render template:", renderError)
-		fmt.Fprintln(w, "Sorry, an error occured. Please try again later.")
+	posts := LatestPosts(10)
+	err := RenderPage(w, "index", NewIndexContext(posts))
+	if err != nil {
+		ErrorHandler(w, err, 500)
 		return
 	}
 }
@@ -44,15 +45,14 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 // PostHandler handles a post request and displays the post.
 func PostHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	post, notFoundError := FindPost(vars["slug"])
-	if notFoundError != nil {
-		ErrorHandler(w, notFoundError, 404)
+	context, err := NewPostContext(vars["slug"])
+	if err != nil {
+		ErrorHandler(w, err, 404)
 		return
 	}
-	renderError := PostTemplate.ExecuteTemplate(w, "base", post.Context)
-	if renderError != nil {
-		ErrorHandler(w, renderError, 500)
-		Error.Println("Failed to render template:", renderError)
+	err = RenderPage(w, "post", context)
+	if err != nil {
+		ErrorHandler(w, err, 500)
 		return
 	}
 }
@@ -60,14 +60,14 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 // PageHandler handles a page request and displays the page.
 func PageHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	page, notFoundError := FindPage(vars["name"])
-	if notFoundError != nil {
-		ErrorHandler(w, notFoundError, 404)
+	context, err := NewPageContext(vars["slug"])
+	if err != nil {
+		ErrorHandler(w, err, 404)
 		return
 	}
-	renderError := PostTemplate.ExecuteTemplate(w, "base", page.Context)
-	if renderError != nil {
-		ErrorHandler(w, renderError, 500)
+	err = RenderPage(w, "page", context)
+	if err != nil {
+		ErrorHandler(w, err, 500)
 		return
 	}
 }
@@ -77,8 +77,8 @@ func LoadRoutes() *mux.Router {
 	r := mux.NewRouter()
 	r.PathPrefix(StaticBaseURL).Handler(http.StripPrefix(StaticBaseURL, http.FileServer(http.Dir(path.Join(BlogFolder, StaticFolder)))))
 	r.HandleFunc(IndexBaseURL, IndexHandler)
-	r.HandleFunc(PostBaseURL+"/{slug}", PostHandler)
-	r.HandleFunc("/{name}", PageHandler)
+	r.HandleFunc(PostBaseURL+"{slug}", PostHandler)
+	r.HandleFunc(PageBaseURL+"{slug}", PageHandler)
 	Trace.Println("Initialized default router")
 	return r
 }
