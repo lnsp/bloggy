@@ -95,6 +95,7 @@ func NewPostContext(slug string) (*PostContext, error) {
 			post.GetURL(),
 		}
 		cachedPosts[slug] = context
+		Trace.Println("Create cache version of post", slug)
 	}
 	return context, nil
 }
@@ -113,6 +114,7 @@ func NewPageContext(slug string) (*PageContext, error) {
 			page.GetURL(),
 		}
 		cachedPages[slug] = context
+		Trace.Println("Create cache version of page", slug)
 	}
 	return context, nil
 }

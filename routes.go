@@ -12,7 +12,7 @@ const (
 	// IndexBaseURL for routing index requests.
 	IndexBaseURL = "/"
 	// PageBaseURL for routing page requests.
-	PageBaseURL = "/page/"
+	PageBaseURL = "/"
 	// PostBaseURL for routing post requests.
 	PostBaseURL = "/post/"
 	// AssetBaseURL for routing asset requests.
@@ -79,6 +79,6 @@ func LoadRoutes() *mux.Router {
 	r.HandleFunc(IndexBaseURL, IndexHandler)
 	r.HandleFunc(PostBaseURL+"{slug}", PostHandler)
 	r.HandleFunc(PageBaseURL+"{slug}", PageHandler)
-	Trace.Println("Initialized default router")
+	Trace.Println("initialized routes")
 	return r
 }

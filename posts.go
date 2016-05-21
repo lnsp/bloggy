@@ -146,7 +146,7 @@ func parseFile(file string) (data *ParseData, err error) {
 	// Decode JSON header
 	yamlError := yaml.Unmarshal([]byte(header), &data)
 	if yamlError != nil {
-		Error.Println("Error while parsing", file, ":", yamlError)
+		Error.Println(file, ":", yamlError)
 	}
 
 	// Generate slug from file name if needed
@@ -154,8 +154,6 @@ func parseFile(file string) (data *ParseData, err error) {
 		data.Slug = strings.TrimSuffix(filepath.Base(file), filepath.Ext(file))
 	}
 	data.Slug = strings.ToLower(data.Slug)
-
-	Trace.Printf("parseFile: %!v\n", *data)
 	return data, nil
 }
 
@@ -166,13 +164,13 @@ func loadDirectory(dir string, callback func(*ParseData) error) error {
 		return err
 	}
 
-	Trace.Println("loadDirectory: searching in", glob)
-	Trace.Println("loadDirectory: found entries:", strings.Join(dirEntries, ","))
+	Trace.Println("searching in", glob)
+	Trace.Println("found entries:", strings.Join(dirEntries, ","))
 	for _, entry := range dirEntries {
 		// Parse file entry
 		data, err := parseFile(entry)
 		if err != nil {
-			Warning.Println("Parse error:", err)
+			Warning.Println("parse error:", err)
 			continue
 		}
 
@@ -181,7 +179,7 @@ func loadDirectory(dir string, callback func(*ParseData) error) error {
 			Error.Println(err)
 			continue
 		}
-		Trace.Println("Read file:", entry)
+		Trace.Println("read file:", entry)
 	}
 
 	return nil
