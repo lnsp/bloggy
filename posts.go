@@ -2,8 +2,6 @@ package main
 
 import (
 	"bufio"
-	"errors"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -23,12 +21,26 @@ const (
 	PagesFolder = "pages"
 )
 
-// FileHeader is a structure to store post file header data.
-type FileHeader struct {
+// ParseData is a structure to store post file header data.
+type ParseData struct {
 	Title       string `yaml:"title"`
 	Subtitle    string `yaml:"subtitle"`
 	PublishDate string `yaml:"date"`
 	Slug        string `yaml:"slug"`
+	content     string
+}
+
+func (p *ParseData) SetContent(c string) {
+	p.content = c
+}
+
+func (p *ParseData) Content() string {
+	return p.content
+}
+
+type Entry interface {
+	GetContent() string
+	GetURL() string
 }
 
 // Post is a structure to store a posts title, subtitle, publishing date and content.
@@ -36,10 +48,40 @@ type Post struct {
 	Title       string
 	Subtitle    string
 	PublishDate time.Time
-	MDContent   string
-	HTMLContent string
 	Slug        string
-	Context     *PostContext
+	Content     string
+}
+
+func (p *Post) GetContent() string {
+	return p.Content
+}
+
+// GetURL generates the absolute URL from /.
+func (p *Post) GetURL() string {
+	rgx, _ := regexp.Compile("[^A-Za-z\\-]")
+	slugged := rgx.ReplaceAllString(p.Slug, "")
+	return PostBaseURL + strings.ToLower(slugged)
+}
+
+func (p *Post) Age() int64 {
+	return time.Now().Unix() - p.PublishDate.Unix()
+}
+
+// Page is a structure to store a page title etc.
+type Page struct {
+	Title   string
+	Slug    string
+	Content string
+}
+
+func (p *Page) GetContent() string {
+	return p.Content
+}
+
+func (p *Page) GetURL() string {
+	regex, _ := regexp.Compile("[^A-Za-z\\-]")
+	slugged := regex.ReplaceAllString(p.Slug, "")
+	return PageBaseURL + strings.ToLower(slugged)
 }
 
 // ByAge implements a interface to sort a slice of posts by publishing date.
@@ -52,37 +94,26 @@ func (b ByAge) Swap(i, j int) {
 	b[i], b[j] = b[j], b[i]
 }
 func (b ByAge) Less(i, j int) bool {
-	return b[i].PublishDate.Unix() > b[j].PublishDate.Unix()
+	return b[i].Age() < b[j].Age()
 }
 
 // BlogPosts is the slice of published posts.
-var BlogPosts, BlogPages []Post
+var Posts []Post
+var Pages []Page
+var PostBySlug map[string]*Post
+var PageBySlug map[string]*Page
 
 // Render generates HTML from a posts markdown content.
-func (p *Post) Render() {
-	output := blackfriday.MarkdownCommon([]byte(p.MDContent))
-	p.HTMLContent = string(bluemonday.UGCPolicy().SanitizeBytes([]byte(output)))
+func Render(e Entry) string {
+	output := blackfriday.MarkdownCommon([]byte(e.GetContent()))
+	return string(bluemonday.UGCPolicy().SanitizeBytes([]byte(output)))
 }
 
-// GetURL generates the absolute URL from /.
-func (p Post) GetURL() string {
-	rgx, _ := regexp.Compile("[^A-Za-z\\-]")
-	slugged := rgx.ReplaceAllString(p.Slug, "")
-	return PostBaseURL + "/" + strings.ToLower(slugged)
-}
-
-// NewPost creates a new post with a specified title, subtitle, publishing date and content.
-func NewPost(title, subtitle string, date time.Time, content, slug string) Post {
-	p := Post{title, subtitle, date, content, "", slug, nil}
-	p.Render()
-	return p
-}
-
-func parsePostFile(folder, file string) (Post, error) {
+func parseFile(file string) (data *ParseData, err error) {
 	// Open the post file
-	input, openError := os.Open(path.Join(BlogFolder, folder, file))
+	input, openError := os.Open(file)
 	if openError != nil {
-		return Post{}, openError
+		return nil, openError
 	}
 	defer input.Close()
 
@@ -109,109 +140,107 @@ func parsePostFile(folder, file string) (Post, error) {
 		}
 	}
 
-	headerData := FileHeader{}
+	data = new(ParseData)
+	data.SetContent(body)
 
 	// Decode JSON header
-	yamlError := yaml.Unmarshal([]byte(header), &headerData)
+	yamlError := yaml.Unmarshal([]byte(header), &data)
 	if yamlError != nil {
-		return Post{}, yamlError
+		Error.Println(file, ":", yamlError)
 	}
 
-	// parse Date from header data
-	date, parseError := time.Parse("2006-Jan-02", headerData.PublishDate)
-	if parseError != nil {
-		return Post{}, parseError
+	// Generate slug from file name if needed
+	if len(data.Slug) == 0 {
+		data.Slug = strings.TrimSuffix(filepath.Base(file), filepath.Ext(file))
+	}
+	data.Slug = strings.ToLower(data.Slug)
+	return data, nil
+}
+
+func loadDirectory(dir string, callback func(*ParseData) error) error {
+	glob := path.Join(dir, "*.md")
+	dirEntries, err := filepath.Glob(glob)
+	if err != nil {
+		return err
 	}
 
-	if len(headerData.Slug) == 0 {
-		headerData.Slug = strings.TrimSuffix(file, filepath.Ext(file))
+	Trace.Println("searching in", glob)
+	Trace.Println("found entries:", strings.Join(dirEntries, ","))
+	for _, entry := range dirEntries {
+		// Parse file entry
+		data, err := parseFile(entry)
+		if err != nil {
+			Warning.Println("parse error:", err)
+			continue
+		}
+
+		err = callback(data)
+		if err != nil {
+			Error.Println(err)
+			continue
+		}
+		Trace.Println("read file:", entry)
 	}
 
-	return NewPost(headerData.Title, headerData.Subtitle, date, body, headerData.Slug), nil
+	return nil
+}
+
+func addPost(data *ParseData) error {
+	p := Post{
+		Title:    data.Title,
+		Subtitle: data.Subtitle,
+		Slug:     data.Slug,
+		Content:  data.Content(),
+	}
+	date, err := time.Parse("2006-Jan-02", data.PublishDate)
+	if err != nil {
+		return err
+	}
+	p.PublishDate = date
+
+	Posts = append(Posts, p)
+	PostBySlug[p.Slug] = &p
+	return nil
+}
+
+func addPage(data *ParseData) error {
+	p := Page{
+		Title:   data.Title,
+		Slug:    data.Slug,
+		Content: data.Content(),
+	}
+
+	Pages = append(Pages, p)
+	PageBySlug[p.Slug] = &p
+	return nil
 }
 
 // LoadPosts loads all published posts from the blog folder.
-func LoadPosts() {
-	BlogPosts = make([]Post, 0)
-	dirEntries, readDirError := ioutil.ReadDir(path.Join(BlogFolder, PostsFolder))
-	if readDirError != nil {
-		Warning.Println("Failed to open post folder:", readDirError)
-		return
+func LoadPosts() error {
+	Posts = make([]Post, 0)
+	PostBySlug = make(map[string]*Post)
+	err := loadDirectory(path.Join(BlogFolder, PostsFolder), addPost)
+	if err != nil {
+		return err
 	}
-	for _, entry := range dirEntries {
-		// Ignore directories
-		if entry.IsDir() {
-			continue
-		}
-
-		post, parseError := parsePostFile(PostsFolder, entry.Name())
-		if parseError != nil {
-			Warning.Println("Failed to parse file:", parseError)
-			continue
-		}
-		post.Context = GetPostContext(&post)
-		BlogPosts = append(BlogPosts, post)
-		Trace.Println("Read post file", entry.Name())
-	}
-
 	// Sort all posts by age
-	sort.Sort(ByAge(BlogPosts))
-	Trace.Println("Serving", len(BlogPosts), "blog posts")
+	sort.Sort(ByAge(Posts))
+	return nil
 }
 
 // LoadPages loads all pages from the pages/ folder.
-func LoadPages() {
-	BlogPages = make([]Post, 0)
-	dirEntries, readDirError := ioutil.ReadDir(path.Join(BlogFolder, PagesFolder))
-	if readDirError != nil {
-		Warning.Println("Failed to open page folder:", readDirError)
-		return
-	}
-	for _, entry := range dirEntries {
-		// Ignore directories
-		if entry.IsDir() {
-			continue
-		}
-
-		page, parseError := parsePostFile(PagesFolder, entry.Name())
-		if parseError != nil {
-			Warning.Println("Failed to parse file:", parseError)
-			continue
-		}
-		page.Context = GetPostContext(&page)
-		BlogPages = append(BlogPages, page)
-		Trace.Println("Read page file", entry.Name())
-	}
-
-	// Sort all posts by age
-	Trace.Println("Serving", len(BlogPages), "blog pages")
+func LoadPages() error {
+	Pages = make([]Page, 0)
+	PageBySlug = make(map[string]*Page)
+	err := loadDirectory(path.Join(BlogFolder, PagesFolder), addPage)
+	return err
 }
 
-// GetLatestsPosts returns a slice of the latest posts.
-func GetLatestsPosts(count int) []Post {
-	size := len(BlogPosts)
+// LatestPosts returns a slice of the latest posts.
+func LatestPosts(count int) []Post {
+	size := len(Posts)
 	if size < count {
-		return BlogPosts
+		return Posts
 	}
-	return BlogPosts[:count]
-}
-
-// FindPost returns a post with the specified slug.
-func FindPost(slug string) (*Post, error) {
-	for _, p := range BlogPosts {
-		if p.Slug == slug {
-			return &p, nil
-		}
-	}
-	return nil, errors.New("Post not found.")
-}
-
-// FindPage returns a post with the specified slug.
-func FindPage(name string) (*Post, error) {
-	for _, p := range BlogPages {
-		if p.Slug == name {
-			return &p, nil
-		}
-	}
-	return nil, errors.New("Page not found.")
+	return Posts[:count]
 }
