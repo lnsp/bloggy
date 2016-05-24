@@ -57,7 +57,7 @@ It is wonderful in here!
 ```
 
 ## Page example
-```
+```markdown
 ---
 title: About me
 slug: about
