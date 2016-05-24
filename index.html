@@ -54,18 +54,21 @@ $ <span class="pl-smi">$GOPATH</span>/bin/bloggy -blog=<span class="pl-s"><span 
 
 <pre><code>my-blog
 ├── config.json
+├── pages
+│   └── about.md
 ├── posts
 │   ├── first-post.md
 │   ├── second-post.md
-│   └── static-power-activated.md
-├── static (images, stylesheets, scripts)
+├── static
 │   └── screenshot.png
 └── templates
-    ├── base.html
-    ├── entry.html
-    ├── error.html
-    ├── index.html
-    └── post.html
+    ├── displays
+    │   ├── error.html
+    │   ├── index.html
+    │   ├── page.html
+    │   └── post.html
+    └── includes
+        └── base.html
 </code></pre>
 
 <p>The <strong>config.json</strong> file stores basic configuration options like the blog's name, host address etc.
@@ -83,6 +86,16 @@ The blog posts are stored in the <strong>posts</strong> folder. Every post file 
 <span class="pl-mh"><span class="pl-mh">##</span><span class="pl-mh"> </span>Hello World from Open Source Land!</span>
 
 It is wonderful in here!</pre></div>
+
+<h2>
+<a id="page-example" class="anchor" href="#page-example" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Page example</h2>
+
+<div class="highlight highlight-source-gfm"><pre><span class="pl-c">---</span>
+<span class="pl-s"><span class="pl-ent">title:</span> <span class="pl-s">About me</span></span>
+<span class="pl-s"><span class="pl-ent">slug:</span> <span class="pl-s">about</span></span>
+<span class="pl-c">---</span>
+
+This is an about-me page.</pre></div>
         </section>
 
         <aside id="sidebar">
