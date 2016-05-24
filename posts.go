@@ -15,13 +15,14 @@ import (
 	"github.com/russross/blackfriday"
 )
 
-// PostsFolder is the default path for posts.
 const (
+	// PostsFolder is the default folder for blog posts.
 	PostsFolder = "posts"
+	// PagesFolder is the default folder for blog pages.
 	PagesFolder = "pages"
 )
 
-// ParseData is a structure to store post file header data.
+// ParseData stores the parsed data of a file.
 type ParseData struct {
 	Title       string `yaml:"title"`
 	Subtitle    string `yaml:"subtitle"`
@@ -30,20 +31,23 @@ type ParseData struct {
 	content     string
 }
 
+// SetContent sets the parsed content.
 func (p *ParseData) SetContent(c string) {
 	p.content = c
 }
 
+// Content returns the parsed content.
 func (p *ParseData) Content() string {
 	return p.content
 }
 
+// Entry has content and be located by an URL.
 type Entry interface {
 	GetContent() string
 	GetURL() string
 }
 
-// Post is a structure to store a posts title, subtitle, publishing date and content.
+// Post stores a title, a page slug and the body content.
 type Post struct {
 	Title       string
 	Subtitle    string
@@ -52,32 +56,36 @@ type Post struct {
 	Content     string
 }
 
+// GetContent returns the content body of the post.
 func (p *Post) GetContent() string {
 	return p.Content
 }
 
-// GetURL generates the absolute URL from /.
+// GetURL generates a URL from the post route url and the post slug.
 func (p *Post) GetURL() string {
 	rgx, _ := regexp.Compile("[^A-Za-z\\-]")
 	slugged := rgx.ReplaceAllString(p.Slug, "")
 	return PostBaseURL + strings.ToLower(slugged)
 }
 
+// Age returns the age of the post in seconds.
 func (p *Post) Age() int64 {
 	return time.Now().Unix() - p.PublishDate.Unix()
 }
 
-// Page is a structure to store a page title etc.
+// Page stores a title, a page slug and the body content.
 type Page struct {
 	Title   string
 	Slug    string
 	Content string
 }
 
+// GetContent returns the content body of the page.
 func (p *Page) GetContent() string {
 	return p.Content
 }
 
+// GetURL generates a URL from the page route url and the page slug.
 func (p *Page) GetURL() string {
 	regex, _ := regexp.Compile("[^A-Za-z\\-]")
 	slugged := regex.ReplaceAllString(p.Slug, "")
@@ -97,18 +105,25 @@ func (b ByAge) Less(i, j int) bool {
 	return b[i].Age() < b[j].Age()
 }
 
-// BlogPosts is the slice of published posts.
+// Posts stores all blog posts.
 var Posts []Post
+
+// Pages stores all blog pages.
 var Pages []Page
+
+// PostBySlug matches each slug to its post.
 var PostBySlug map[string]*Post
+
+// PageBySlug matches each slug to its page.
 var PageBySlug map[string]*Page
 
-// Render generates HTML from a posts markdown content.
+// Render generates HTML from an entries markdown content.
 func Render(e Entry) string {
 	output := blackfriday.MarkdownCommon([]byte(e.GetContent()))
 	return string(bluemonday.UGCPolicy().SanitizeBytes([]byte(output)))
 }
 
+// parseFile parses a file and returns a pointer to the parsed data or an error.
 func parseFile(file string) (data *ParseData, err error) {
 	// Open the post file
 	input, openError := os.Open(file)
@@ -157,6 +172,7 @@ func parseFile(file string) (data *ParseData, err error) {
 	return data, nil
 }
 
+// loadDirectory searches a directory for markdown files, parses them and calls a function for each of them.
 func loadDirectory(dir string, callback func(*ParseData) error) error {
 	glob := path.Join(dir, "*.md")
 	dirEntries, err := filepath.Glob(glob)
@@ -185,6 +201,7 @@ func loadDirectory(dir string, callback func(*ParseData) error) error {
 	return nil
 }
 
+// addPost creates a new post from the parsed data.
 func addPost(data *ParseData) error {
 	p := Post{
 		Title:    data.Title,
@@ -203,6 +220,7 @@ func addPost(data *ParseData) error {
 	return nil
 }
 
+// addPage creates a new page from the parsed data.
 func addPage(data *ParseData) error {
 	p := Page{
 		Title:   data.Title,
@@ -215,7 +233,7 @@ func addPage(data *ParseData) error {
 	return nil
 }
 
-// LoadPosts loads all published posts from the blog folder.
+// LoadPosts loads all posts from the posts/ folder.
 func LoadPosts() error {
 	Posts = make([]Post, 0)
 	PostBySlug = make(map[string]*Post)
@@ -236,7 +254,7 @@ func LoadPages() error {
 	return err
 }
 
-// LatestPosts returns a slice of the latest posts.
+// LatestPosts returns a slice of the latest blog posts.
 func LatestPosts(count int) []Post {
 	size := len(Posts)
 	if size < count {
