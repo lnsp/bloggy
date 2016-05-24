@@ -23,18 +23,21 @@ $ $GOPATH/bin/bloggy -blog="example-blog"
 ```
 my-blog
 ├── config.json
+├── pages
+│   └── about.md
 ├── posts
 │   ├── first-post.md
 │   ├── second-post.md
-│   └── static-power-activated.md
-├── static (images, stylesheets, scripts)
+├── static
 │   └── screenshot.png
 └── templates
-    ├── base.html
-    ├── entry.html
-    ├── error.html
-    ├── index.html
-    └── post.html
+    ├── displays
+    │   ├── error.html
+    │   ├── index.html
+    │   ├── page.html
+    │   └── post.html
+    └── includes
+        └── base.html
 ```
 
 The **config.json** file stores basic configuration options like the blog's name, host address etc.
@@ -51,4 +54,14 @@ slug: open-source-land
 ## Hello World from Open Source Land!
 
 It is wonderful in here!
+```
+
+## Page example
+```
+---
+title: About me
+slug: about
+---
+
+This is an about-me page.
 ```
