@@ -20,6 +20,8 @@ const (
 	PostsFolder = "posts"
 	// PagesFolder is the default folder for blog pages.
 	PagesFolder = "pages"
+	// FileDateFormat is the date format required in a post's header.
+	FileDateFormat = "2006-Jan-02"
 )
 
 // ParseData stores the parsed data of a file.
@@ -209,7 +211,7 @@ func addPost(data *ParseData) error {
 		Slug:     data.Slug,
 		Content:  data.Content(),
 	}
-	date, err := time.Parse("2006-Jan-02", data.PublishDate)
+	date, err := time.Parse(FileDateFormat, data.PublishDate)
 	if err != nil {
 		return err
 	}
