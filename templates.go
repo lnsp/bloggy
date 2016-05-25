@@ -16,12 +16,11 @@ import (
 // TemplatesFolder is the default folder for templates.
 const (
 	TemplateFolder = "templates"
-	displayFolder  = "displays"
-	includeFolder  = "includes"
+	DisplayFolder  = "displays"
+	IncludeFolder  = "includes"
 )
 
 var (
-	// BlogTemplates stores all required blog templates.
 	templates   map[string]*template.Template
 	blogContext *BaseContext
 	cachedPages map[string]*PageContext
@@ -34,7 +33,7 @@ type BaseContext struct {
 	BlogTitle, BlogSubtitle, BlogAuthor, BlogYear, BlogEmail, BlogURL string
 }
 
-// PostContext stores additional information like post title, date etc.
+// PostContext stores additional information for posts.
 type PostContext struct {
 	BaseContext
 	PostTitle    string
@@ -44,6 +43,7 @@ type PostContext struct {
 	PostURL      string
 }
 
+// PageContext stores additional information for pages.
 type PageContext struct {
 	BaseContext
 	PageTitle   string
@@ -51,7 +51,7 @@ type PageContext struct {
 	PostURL     string
 }
 
-// IndexContext stores index information like a list of posts.
+// IndexContext stores a list of the latest posts.
 type IndexContext struct {
 	BaseContext
 	LatestPosts []Post
@@ -63,7 +63,7 @@ type ErrorContext struct {
 	Message string
 }
 
-// NewBaseContext creates a BaseContext from the global blog configuration.
+// NewBaseContext either creates a new BaseContext from the global blog configuration or returns the cached version.
 func NewBaseContext() *BaseContext {
 	if blogContext == nil {
 		blogContext = &BaseContext{
@@ -78,13 +78,13 @@ func NewBaseContext() *BaseContext {
 	return blogContext
 }
 
-// GetPostContext creates a PostContext from the global blog configuration and a specified post.
+// NewPostContext either creates a new post context or returns the cached version.
 func NewPostContext(slug string) (*PostContext, error) {
 	context, ok := cachedPosts[slug]
 	if !ok {
 		post, ok := PostBySlug[slug]
 		if !ok {
-			return nil, errors.New("Post not found")
+			return nil, errors.New("post not found")
 		}
 		context = &PostContext{
 			*NewBaseContext(),
@@ -95,17 +95,18 @@ func NewPostContext(slug string) (*PostContext, error) {
 			post.GetURL(),
 		}
 		cachedPosts[slug] = context
-		Trace.Println("Create cache version of post", slug)
+		Trace.Println("create cache version of post", slug)
 	}
 	return context, nil
 }
 
+// NewPageContext either creates a new page context or returns the cached version.
 func NewPageContext(slug string) (*PageContext, error) {
 	context, ok := cachedPages[slug]
 	if !ok {
 		page, ok := PageBySlug[slug]
 		if !ok {
-			return nil, errors.New("Page not found")
+			return nil, errors.New("page not found")
 		}
 		context = &PageContext{
 			*NewBaseContext(),
@@ -114,12 +115,12 @@ func NewPageContext(slug string) (*PageContext, error) {
 			page.GetURL(),
 		}
 		cachedPages[slug] = context
-		Trace.Println("Create cache version of page", slug)
+		Trace.Println("create cache version of page", slug)
 	}
 	return context, nil
 }
 
-// GetIndexContext creates a IndexContext from the global blog configuration and a list of posts.
+// GetIndexContext either creates a new index context or returns the cached version.
 func NewIndexContext(posts []Post) *IndexContext {
 	if cachedIndex == nil {
 		cachedIndex = &IndexContext{*NewBaseContext(), posts}
@@ -127,7 +128,7 @@ func NewIndexContext(posts []Post) *IndexContext {
 	return cachedIndex
 }
 
-// GetErrorContext creates a ErrorContext from the error.
+// NewErrorContext creates a new error context.
 func NewErrorContext(err error) *ErrorContext {
 	return &ErrorContext{*NewBaseContext(), err.Error()}
 }
@@ -138,32 +139,33 @@ func LoadTemplates() {
 	cachedPosts = make(map[string]*PostContext)
 	templates = make(map[string]*template.Template)
 
-	displays, err := filepath.Glob(path.Join(BlogFolder, TemplateFolder, displayFolder, "*.html"))
+	displays, err := filepath.Glob(path.Join(BlogFolder, TemplateFolder, DisplayFolder, "*.html"))
 	if err != nil {
-		Error.Println("Error loading display templates:", err)
+		Error.Println("error loading display templates:", err)
 		return
 	}
-	Trace.Println("Found displays:", strings.Join(displays, ","))
+	Trace.Println("displays:", strings.Join(displays, ","))
 
-	includes, err := filepath.Glob(path.Join(BlogFolder, TemplateFolder, includeFolder, "*.html"))
+	includes, err := filepath.Glob(path.Join(BlogFolder, TemplateFolder, IncludeFolder, "*.html"))
 	if err != nil {
-		Error.Println("Error loading include templates:", err)
+		Error.Println("error loading include templates:", err)
 		return
 	}
-	Trace.Println("Found includes:", strings.Join(includes, ","))
+	Trace.Println("includes:", strings.Join(includes, ","))
 
 	for _, display := range displays {
 		files := append(includes, display)
 		name := strings.TrimSuffix(filepath.Base(display), filepath.Ext(display))
 		templates[name] = template.Must(template.New(name).ParseFiles(files...))
-		Trace.Println("Load display template:", name)
+		Trace.Println("load display template:", name)
 	}
 }
 
+// RenderPage renders a page or throws an error if the template is missing.
 func RenderPage(w io.Writer, name string, context interface{}) error {
 	tmpl, ok := templates[name]
 	if !ok {
-		return errors.New("Template not found")
+		return errors.New("template not found")
 	}
 	return tmpl.ExecuteTemplate(w, "base", context)
 }
