@@ -24,6 +24,9 @@ Available flags are:
 
 	-k="key"
 		Loads the private key file. Required if HTTPS is enabled.
+
+	--version
+		Prints out the version tag.
 */
 package main
 
