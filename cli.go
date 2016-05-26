@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -15,12 +16,37 @@ type Command struct {
 }
 
 const (
-	cmdSymbol = "$ "
+	cmdSymbol = "> "
 )
 
 var (
-	commands = make(map[string]Command)
+	Commands []*Command
 )
+
+// GetCommandNames returns a slice of all command names.
+func GetCommandNames() []string {
+	allNames := make([]string, 0, len(Commands))
+	for _, cmd := range Commands {
+		allNames = append(allNames, cmd.Name)
+	}
+	return allNames
+}
+
+// GetCommand either returns a command or and error.
+func GetCommand(name string) (*Command, error) {
+	for _, cmd := range Commands {
+		if cmd.Name == name {
+			return cmd, nil
+		}
+	}
+	return nil, errors.New("command not found")
+}
+
+// printMessage prints out the items with the prefix [CLI].
+func printMessage(items ...interface{}) {
+	fmt.Print("[CLI] ")
+	fmt.Println(items...)
+}
 
 // RegisterCommand registers a new command with a name, a usage string and an executable function.
 func RegisterCommand(name, usage string, executeFnc func([]string) error) {
@@ -29,26 +55,18 @@ func RegisterCommand(name, usage string, executeFnc func([]string) error) {
 		Usage:   usage,
 		Execute: executeFnc,
 	}
-	commands[name] = cmd
+	Commands = append(Commands, &cmd)
 }
 
 // init loads a standard set of commands.
 func init() {
 	RegisterCommand("reload", "> reload", func(args []string) error {
-		if err := LoadTemplates(); err != nil {
-			return err
-		}
-		if err := LoadPosts(); err != nil {
-			return err
-		}
-		if err := LoadPages(); err != nil {
-			return err
-		}
-		fmt.Println("reload templates, posts and pages")
+		printMessage("reload templates, posts and pages")
+		Reload()
 		return nil
 	})
 	RegisterCommand("stop", "> stop", func(args []string) error {
-		fmt.Println("stop the server")
+		printMessage("stop the server")
 		os.Exit(1)
 		return nil
 	})
@@ -60,11 +78,11 @@ func init() {
 		case "on":
 			logFlags = log.Ltime | log.Lshortfile
 			initLogger(os.Stdout)
-			Info.Println("activated debug mode")
+			printMessage("activated debug mode")
 		case "off":
 			logFlags = log.Ldate | log.Ltime
 			initLogger(ioutil.Discard)
-			Info.Println("deactivated debug mode")
+			printMessage("deactivated debug mode")
 		default:
 			return errors.New("unknown mode:" + args[0])
 		}
@@ -72,16 +90,13 @@ func init() {
 	})
 	RegisterCommand("help", "> help [command]", func(args []string) error {
 		if len(args) == 0 {
-			fmt.Println("available commands:")
-			for _, v := range commands {
-				fmt.Printf("%2s-%s\n", "", v.Name)
-			}
+			printMessage("help:", strings.Join(GetCommandNames(), ", "))
 		} else if len(args) == 1 {
-			cmd, ok := commands[args[0]]
-			if !ok {
-				return errors.New("command not found")
+			cmd, err := GetCommand(args[0])
+			if err != nil {
+				return err
 			}
-			fmt.Printf("usage of %s:\n%s\n", cmd.Name, cmd.Usage)
+			printMessage("help:", cmd.Usage)
 		} else {
 			return errors.New("bad arguments")
 		}
@@ -89,30 +104,36 @@ func init() {
 	})
 }
 
-func runCLI() {
+func startInteractiveMode() {
+	printMessage("bloggy", BloggyVersionTag)
+	reader := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Print(cmdSymbol)
-		var input string
-		fmt.Scanln(&input)
-
-		tokens := strings.Split(input, " ")
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			break
+		}
+		// Collect tokens from user input
+		tokens := strings.Split(line, " ")
 		for i, _ := range tokens {
-			tokens[i] = strings.Trim(tokens[i], " ")
+			tokens[i] = strings.Trim(tokens[i], " \n\t\r")
 		}
 
+		// Just continue if no command is given
 		if len(tokens) < 1 {
 			continue
 		} else {
 			name := strings.ToLower(tokens[0])
-			cmd, ok := commands[name]
-			if !ok {
-				fmt.Println("error: command not found")
+			cmd, err := GetCommand(name)
+			if err != nil {
+				printMessage("error:", err)
 				continue
 			}
 
-			err := cmd.Execute(tokens[1:])
+			err = cmd.Execute(tokens[1:])
 			if err != nil {
-				fmt.Println("error:", err)
+				printMessage("error:", err)
+				continue
 			}
 		}
 	}

@@ -29,6 +29,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -37,6 +38,8 @@ import (
 	"os/exec"
 	"path"
 )
+
+const BloggyVersionTag = "v0.1-alpha"
 
 // DefaultBlogRepository is the default example blog repository.
 const DefaultBlogRepository = "https://github.com/lnsp/bloggy-blueprint"
@@ -57,17 +60,31 @@ var (
 	interactiveFlag = flag.Bool("i", false, "Runs an interactive CLI")
 	certFlag        = flag.String("c", "", "Certificate file for HTTPS")
 	keyFlag         = flag.String("k", "", "Private key file for HTTPS")
+	versionFlag     = flag.Bool("version", false, "Prints out the version")
 )
 
 func initLogger(traceOutput io.Writer) {
-	Trace = log.New(traceOutput, "[Trace] ", log.Ltime|log.Lshortfile)
-	Info = log.New(os.Stdout, "[Info] ", log.Ltime|log.Lshortfile)
-	Warning = log.New(os.Stdout, "[Warning] ", log.Ltime|log.Lshortfile)
-	Error = log.New(os.Stderr, "[Error] ", log.Ltime|log.Lshortfile)
+	Trace = log.New(traceOutput, "[Trace] ", log.Ltime)
+	Info = log.New(os.Stdout, "[Info] ", log.Ltime)
+	Warning = log.New(os.Stdout, "[Warning] ", log.Ltime)
+	Error = log.New(os.Stderr, "[Error] ", log.Ltime)
 }
 
-// ResetBlog resets the blog, deletes all files and clones the source repo.
-func ResetBlog(repository string) error {
+func Reload() error {
+	if err := LoadTemplates(); err != nil {
+		return err
+	}
+	if err := LoadPosts(); err != nil {
+		return err
+	}
+	if err := LoadPages(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Reset resets the blog, deletes all files and clones the source repo.
+func Reset(repository string) error {
 	// delete existing folder
 	remError := os.RemoveAll(BlogFolder)
 	if remError != nil && !os.IsNotExist(remError) {
@@ -81,6 +98,7 @@ func ResetBlog(repository string) error {
 	if cloneStartError != nil {
 		return cloneStartError
 	}
+	Info.Println("cloning repository")
 	// wait for git to finish
 	cloneWaitError := cloneCmd.Wait()
 	// git runtime error
@@ -97,43 +115,52 @@ func main() {
 	// parse command line arguments
 	flag.Parse()
 
+	if *versionFlag {
+		fmt.Println("bloggy", BloggyVersionTag)
+		return
+	}
+
 	cwd, err := os.Getwd()
 	if err != nil {
-		Error.Println("Could not determine working directory")
-		os.Exit(1)
+		Error.Println("could not determine current working directory")
+		return
 	}
+
 	BlogFolder = path.Join(cwd, *folderFlag)
 	// check if reset
 	if *resetFlag {
-		Info.Println("Resetting blog folder:", BlogFolder)
-		resetError := ResetBlog(*repositoryFlag)
-		if resetError != nil {
-			Error.Println("Failed to reset blog:", resetError)
-			os.Exit(1)
+		Info.Println("reset blog folder")
+		err = Reset(*repositoryFlag)
+		if err != nil {
+			Error.Println("ResetBlog:", err)
+			return
 		}
 	}
 
 	// load configuration file from disk
-	loadError := LoadConfig()
-	if loadError != nil {
-		Error.Println("Failed to load configuration:", loadError)
-		os.Exit(1)
+	err = LoadConfig()
+	if err != nil {
+		Error.Println("LoadConfig:", err)
+		return
 	}
+
 	// Load all posts and templates
-	LoadTemplates()
-	LoadPosts()
-	LoadPages()
+	err = Reload()
+	if err != nil {
+		Error.Println("Reload:", err)
+		return
+	}
 
 	// Start interactive command line interface
 	if *interactiveFlag {
-		go runCLI()
+		go startInteractiveMode()
 	}
 	// Create handler
 	router := http.Handler(LoadRoutes())
 	if *certFlag != "" {
 		// Enable HSTS header if HTTPS is enabled
 		router = hstsHandler(router)
-		Info.Println("Enabled TLS/SSL using certificates", *certFlag, "and", *keyFlag)
+		Info.Println("enabled TLS/SSL using certificates", *certFlag, "and", *keyFlag)
 		go func() {
 			Error.Println(http.ListenAndServeTLS(GlobalConfig.HostAddressTLS, *certFlag, *keyFlag, router))
 		}()
