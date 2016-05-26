@@ -12,11 +12,12 @@ Available flags are:
 	--blog="my-blog"
 		Set the source folder for templates and posts.
 
-	--repo="https://github.com/lnsp/example-blog"
+	--repo="https://github.com/lnsp/bloggy-blueprint"
 		Change the git source repository for new blogs
 
 	-i
 		Enables the interactive command line interface.
+		Type 'help' in the CLI to get more information.
 
 	-c="certificate"
 		Loads the certificate file and enables HTTPS.
@@ -79,7 +80,7 @@ func runCLI() {
 		case "debug":
 			switch arg {
 			case "on":
-				logFlags = log.Ldate | log.Ltime | log.Lshortfile
+				logFlags = log.Ltime | log.Lshortfile
 				initLogger(os.Stdout)
 				Info.Println("Activated debug mode")
 			case "off":
