@@ -159,6 +159,7 @@ func LoadTemplates() error {
 		templates[name] = template.Must(template.New(name).ParseFiles(files...))
 		Trace.Println("load display template:", name)
 	}
+	return nil
 }
 
 // RenderPage renders a page or throws an error if the template is missing.
