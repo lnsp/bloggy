@@ -134,7 +134,7 @@ func NewErrorContext(err error) *ErrorContext {
 }
 
 // LoadTemplates loads the templates from the blog folder.
-func LoadTemplates() {
+func LoadTemplates() error {
 	cachedPages = make(map[string]*PageContext)
 	cachedPosts = make(map[string]*PostContext)
 	templates = make(map[string]*template.Template)
@@ -142,14 +142,14 @@ func LoadTemplates() {
 	displays, err := filepath.Glob(path.Join(BlogFolder, TemplateFolder, DisplayFolder, "*.html"))
 	if err != nil {
 		Error.Println("error loading display templates:", err)
-		return
+		return err
 	}
 	Trace.Println("displays:", strings.Join(displays, ","))
 
 	includes, err := filepath.Glob(path.Join(BlogFolder, TemplateFolder, IncludeFolder, "*.html"))
 	if err != nil {
 		Error.Println("error loading include templates:", err)
-		return
+		return err
 	}
 	Trace.Println("includes:", strings.Join(includes, ","))
 
