@@ -74,6 +74,7 @@ func initLogger(traceOutput io.Writer) {
 }
 
 func Reload() error {
+	ClearCache()
 	if err := LoadTemplates(); err != nil {
 		return err
 	}

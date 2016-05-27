@@ -47,6 +47,7 @@ func (p *ParseData) Content() string {
 type Entry interface {
 	GetContent() string
 	GetURL() string
+	GetTitle() string
 }
 
 // Post stores a title, a page slug and the body content.
@@ -61,6 +62,11 @@ type Post struct {
 // GetContent returns the content body of the post.
 func (p *Post) GetContent() string {
 	return p.Content
+}
+
+// GetTitle returns the title of the post.
+func (p *Post) GetTitle() string {
+	return p.Title
 }
 
 // GetURL generates a URL from the post route url and the post slug.
@@ -85,6 +91,11 @@ type Page struct {
 // GetContent returns the content body of the page.
 func (p *Page) GetContent() string {
 	return p.Content
+}
+
+// GetTitle returns the title of the page.
+func (p *Page) GetTitle() string {
+	return p.Title
 }
 
 // GetURL generates a URL from the page route url and the page slug.
@@ -253,7 +264,14 @@ func LoadPages() error {
 	Pages = make([]Page, 0)
 	PageBySlug = make(map[string]*Page)
 	err := loadDirectory(path.Join(BlogFolder, PagesFolder), addPage)
-	return err
+	if err != nil {
+		return err
+	}
+	for _, page := range Pages {
+		AddNavItem(&page)
+	}
+
+	return nil
 }
 
 // LatestPosts returns a slice of the latest blog posts.

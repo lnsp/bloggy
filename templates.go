@@ -22,15 +22,28 @@ const (
 
 var (
 	templates   map[string]*template.Template
+	navItems    []NavItemContext
 	blogContext *BaseContext
 	cachedPages map[string]*PageContext
 	cachedPosts map[string]*PostContext
 	cachedIndex *IndexContext
 )
 
+// NavItemContext stores the information of a navigation item.
+type NavItemContext struct {
+	Title string
+	URL   string
+}
+
 // BaseContext stores basic context information like title, author etc.
 type BaseContext struct {
-	BlogTitle, BlogSubtitle, BlogAuthor, BlogYear, BlogEmail, BlogURL string
+	BlogTitle    string
+	BlogSubtitle string
+	BlogAuthor   string
+	BlogYear     string
+	BlogEmail    string
+	BlogURL      string
+	BlogNav      []NavItemContext
 }
 
 // PostContext stores additional information for posts.
@@ -48,7 +61,7 @@ type PageContext struct {
 	BaseContext
 	PageTitle   string
 	PageContent template.HTML
-	PostURL     string
+	PageURL     string
 }
 
 // IndexContext stores a list of the latest posts.
@@ -63,9 +76,20 @@ type ErrorContext struct {
 	Message string
 }
 
+// AddNavItem adds a item to the navigation.
+func AddNavItem(e Entry) {
+	item := NavItemContext{
+		Title: e.GetTitle(),
+		URL:   e.GetURL(),
+	}
+	navItems = append(navItems, item)
+	Trace.Println("added", item.Title, "to navigation bar")
+}
+
 // NewBaseContext either creates a new BaseContext from the global blog configuration or returns the cached version.
 func NewBaseContext() *BaseContext {
 	if blogContext == nil {
+		// Generate slice of page contexts
 		blogContext = &BaseContext{
 			GlobalConfig.BlogTitle,
 			GlobalConfig.BlogSubtitle,
@@ -73,6 +97,7 @@ func NewBaseContext() *BaseContext {
 			fmt.Sprint(time.Now().Year()),
 			GlobalConfig.BlogEmail,
 			GlobalConfig.BlogURL,
+			navItems,
 		}
 	}
 	return blogContext
@@ -169,4 +194,13 @@ func RenderPage(w io.Writer, name string, context interface{}) error {
 		return errors.New("template not found")
 	}
 	return tmpl.ExecuteTemplate(w, "base", context)
+}
+
+// ClearCache clears the context cache.
+func ClearCache() {
+	Info.Println("clearing cache")
+	blogContext = nil
+	cachedPages = make(map[string]*PageContext)
+	cachedPosts = make(map[string]*PostContext)
+	cachedIndex = nil
 }
