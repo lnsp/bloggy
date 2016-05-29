@@ -11,14 +11,15 @@ const DefaultConfigFile = "config.json"
 
 // BlogConfig represents the blog configuration.
 type BlogConfig struct {
-	HostAddress    string `json:"host"`
-	HostAddressTLS string `json:"host.secure"`
-	HostCountry    string `json:"country"`
-	BlogTitle      string `json:"title"`
-	BlogSubtitle   string `json:"subtitle"`
-	BlogAuthor     string `json:"author"`
-	BlogEmail      string `json:"email"`
-	BlogURL        string `json:"url"`
+	Address    string            `json:"host"`
+	AddressTLS string            `json:"host.secure"`
+	Country    string            `json:"country"`
+	Title      string            `json:"title"`
+	Subtitle   string            `json:"subtitle"`
+	Author     string            `json:"author"`
+	Email      string            `json:"email"`
+	URL        string            `json:"url"`
+	Links      map[string]string `json:"links"`
 }
 
 // LoadConfig loads the blog configuration.

@@ -84,6 +84,7 @@ func Reload() error {
 	if err := LoadPages(); err != nil {
 		return err
 	}
+	AddLinks()
 	return nil
 }
 
@@ -166,8 +167,8 @@ func main() {
 		router = hstsHandler(router)
 		Info.Println("enabled TLS/SSL using certificates", *certFlag, "and", *keyFlag)
 		go func() {
-			Error.Println(http.ListenAndServeTLS(GlobalConfig.HostAddressTLS, *certFlag, *keyFlag, router))
+			Error.Println(http.ListenAndServeTLS(GlobalConfig.AddressTLS, *certFlag, *keyFlag, router))
 		}()
 	}
-	Error.Println(http.ListenAndServe(GlobalConfig.HostAddress, router))
+	Error.Println(http.ListenAndServe(GlobalConfig.Address, router))
 }

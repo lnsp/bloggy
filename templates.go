@@ -91,13 +91,13 @@ func NewBaseContext() *BaseContext {
 	if blogContext == nil {
 		// Generate slice of page contexts
 		blogContext = &BaseContext{
-			GlobalConfig.BlogTitle,
-			GlobalConfig.BlogSubtitle,
-			GlobalConfig.BlogAuthor,
-			fmt.Sprint(time.Now().Year()),
-			GlobalConfig.BlogEmail,
-			GlobalConfig.BlogURL,
-			navItems,
+			BlogTitle:    GlobalConfig.Title,
+			BlogSubtitle: GlobalConfig.Subtitle,
+			BlogAuthor:   GlobalConfig.Author,
+			BlogYear:     fmt.Sprint(time.Now().Year()),
+			BlogEmail:    GlobalConfig.Email,
+			BlogURL:      GlobalConfig.URL,
+			BlogNav:      navItems,
 		}
 	}
 	return blogContext
@@ -131,7 +131,7 @@ func NewPageContext(slug string) (*PageContext, error) {
 	if !ok {
 		page, ok := PageBySlug[slug]
 		if !ok {
-			return nil, errors.New("page not found")
+			return nil, errors.New("page '" + slug + "' not found")
 		}
 		context = &PageContext{
 			*NewBaseContext(),
@@ -203,4 +203,29 @@ func ClearCache() {
 	cachedPages = make(map[string]*PageContext)
 	cachedPosts = make(map[string]*PostContext)
 	cachedIndex = nil
+}
+
+type NavigationLink struct {
+	Title string
+	URL   string
+}
+
+func (n *NavigationLink) GetContent() string {
+	return ""
+}
+
+func (n *NavigationLink) GetURL() string {
+	return n.URL
+}
+
+func (n *NavigationLink) GetTitle() string {
+	return n.Title
+}
+
+// AddLinks add links to navigation.
+func AddLinks() {
+	for key, value := range GlobalConfig.Links {
+		link := NavigationLink{key, value}
+		AddNavItem(&link)
+	}
 }

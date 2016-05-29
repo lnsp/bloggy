@@ -16,7 +16,7 @@ type Command struct {
 }
 
 const (
-	cmdSymbol = "> "
+	cmdSymbol = "~ "
 )
 
 var (
