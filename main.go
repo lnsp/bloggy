@@ -40,6 +40,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strconv"
 )
 
 const BloggyVersionTag = "v0.1-alpha"
@@ -49,7 +50,7 @@ const DefaultBlogRepository = "https://github.com/lnsp/bloggy-blueprint"
 
 var (
 	// GlobalConfig is the global app configuration.
-	GlobalConfig BlogConfig
+	Config BlogConfig
 	// BlogFolder is the source folder.
 	BlogFolder string
 	// Loggers
@@ -167,8 +168,10 @@ func main() {
 		router = hstsHandler(router)
 		Info.Println("enabled TLS/SSL using certificates", *certFlag, "and", *keyFlag)
 		go func() {
-			Error.Println(http.ListenAndServeTLS(GlobalConfig.AddressTLS, *certFlag, *keyFlag, router))
+			address := ":" + strconv.Itoa(Config.Server.TLSPort)
+			Error.Println(http.ListenAndServeTLS(address, *certFlag, *keyFlag, router))
 		}()
 	}
-	Error.Println(http.ListenAndServe(GlobalConfig.Address, router))
+	address := ":" + strconv.Itoa(Config.Server.Port)
+	Error.Println(http.ListenAndServe(address, router))
 }

@@ -91,12 +91,12 @@ func NewBaseContext() *BaseContext {
 	if blogContext == nil {
 		// Generate slice of page contexts
 		blogContext = &BaseContext{
-			BlogTitle:    GlobalConfig.Title,
-			BlogSubtitle: GlobalConfig.Subtitle,
-			BlogAuthor:   GlobalConfig.Author,
+			BlogTitle:    Config.Meta.Title,
+			BlogSubtitle: Config.Meta.Subtitle,
+			BlogAuthor:   Config.Author.Name,
 			BlogYear:     fmt.Sprint(time.Now().Year()),
-			BlogEmail:    GlobalConfig.Email,
-			BlogURL:      GlobalConfig.URL,
+			BlogEmail:    Config.Author.Email,
+			BlogURL:      "/",
 			BlogNav:      navItems,
 		}
 	}
@@ -224,7 +224,7 @@ func (n *NavigationLink) GetTitle() string {
 
 // AddLinks add links to navigation.
 func AddLinks() {
-	for key, value := range GlobalConfig.Links {
+	for key, value := range Config.Links {
 		link := NavigationLink{key, value}
 		AddNavItem(&link)
 	}

@@ -1,37 +1,43 @@
 package main
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"path"
+
+	"github.com/go-yaml/yaml"
 )
 
 // DefaultConfigFile is the default name of the configuration file.
-const DefaultConfigFile = "config.json"
+const DefaultConfigFile = "config.yaml"
 
 // BlogConfig represents the blog configuration.
 type BlogConfig struct {
-	Address    string            `json:"host"`
-	AddressTLS string            `json:"host.secure"`
-	Country    string            `json:"country"`
-	Title      string            `json:"title"`
-	Subtitle   string            `json:"subtitle"`
-	Author     string            `json:"author"`
-	Email      string            `json:"email"`
-	URL        string            `json:"url"`
-	Links      map[string]string `json:"links"`
+	Server struct {
+		Port    int
+		TLSPort int
+	}
+	Meta struct {
+		Country  string
+		Title    string
+		Subtitle string
+	}
+	Author struct {
+		Name  string
+		Email string
+	}
+	Links map[string]string
 }
 
 // LoadConfig loads the blog configuration.
 func LoadConfig() error {
-	contents, readError := ioutil.ReadFile(path.Join(BlogFolder, DefaultConfigFile))
-	if readError != nil {
-		return readError
+	contents, err := ioutil.ReadFile(path.Join(BlogFolder, DefaultConfigFile))
+	if err != nil {
+		return err
 	}
 
-	jsonError := json.Unmarshal(contents, &GlobalConfig)
-	if jsonError != nil {
-		return jsonError
+	err = yaml.Unmarshal(contents, &Config)
+	if err != nil {
+		return err
 	}
 
 	return nil
