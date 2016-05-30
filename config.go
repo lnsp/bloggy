@@ -20,6 +20,7 @@ type BlogConfig struct {
 		Country  string
 		Title    string
 		Subtitle string
+		Favicon  string
 	}
 	Author struct {
 		Name  string

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"path"
+	"path/filepath"
 
 	"github.com/gorilla/mux"
 )
@@ -16,8 +17,9 @@ const (
 	// PostBaseURL for routing post requests.
 	PostBaseURL = "/post/"
 	// AssetBaseURL for routing asset requests.
-	StaticBaseURL = "/static/"
-	StaticFolder  = "static"
+	StaticBaseURL  = "/static/"
+	FaviconBaseURL = "/favicon.ico"
+	StaticFolder   = "static"
 )
 
 // ErrorHandler handles the errors.
@@ -72,11 +74,19 @@ func PageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// FaviconHandler
+func FaviconHandler(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, filepath.Join(BlogFolder, Config.Meta.Favicon))
+}
+
 // LoadRoutes configures a new blog router.
 func LoadRoutes() *mux.Router {
 	r := mux.NewRouter()
 	r.PathPrefix(StaticBaseURL).Handler(http.StripPrefix(StaticBaseURL, http.FileServer(http.Dir(path.Join(BlogFolder, StaticFolder)))))
 	r.HandleFunc(IndexBaseURL, IndexHandler)
+	if Config.Meta.Favicon != "" {
+		r.HandleFunc(FaviconBaseURL, FaviconHandler)
+	}
 	r.HandleFunc(PostBaseURL+"{slug}", PostHandler)
 	r.HandleFunc(PageBaseURL+"{slug}", PageHandler)
 	Trace.Println("initialized routes")
