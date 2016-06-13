@@ -10,6 +10,7 @@ import (
 	"strings"
 )
 
+// Command is a CLI command.
 type Command struct {
 	Name, Usage string
 	Execute     func([]string) error
@@ -20,13 +21,13 @@ const (
 )
 
 var (
-	Commands []*Command
+	commands []*Command
 )
 
 // GetCommandNames returns a slice of all command names.
 func GetCommandNames() []string {
-	allNames := make([]string, 0, len(Commands))
-	for _, cmd := range Commands {
+	allNames := make([]string, 0, len(commands))
+	for _, cmd := range commands {
 		allNames = append(allNames, cmd.Name)
 	}
 	return allNames
@@ -34,7 +35,7 @@ func GetCommandNames() []string {
 
 // GetCommand either returns a command or and error.
 func GetCommand(name string) (*Command, error) {
-	for _, cmd := range Commands {
+	for _, cmd := range commands {
 		if cmd.Name == name {
 			return cmd, nil
 		}
@@ -55,10 +56,10 @@ func RegisterCommand(name, usage string, executeFnc func([]string) error) {
 		Usage:   usage,
 		Execute: executeFnc,
 	}
-	Commands = append(Commands, &cmd)
+	commands = append(commands, &cmd)
 }
 
-// init loads a standard set of commands.
+// init loads a standard set of command.
 func init() {
 	RegisterCommand("reload", "> reload", func(args []string) error {
 		printMessage("reload templates, posts and pages")
@@ -115,7 +116,7 @@ func startInteractiveMode() {
 		}
 		// Collect tokens from user input
 		tokens := strings.Split(line, " ")
-		for i, _ := range tokens {
+		for i := range tokens {
 			tokens[i] = strings.Trim(tokens[i], " \n\t\r")
 		}
 
