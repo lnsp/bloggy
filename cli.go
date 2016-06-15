@@ -4,9 +4,13 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -103,6 +107,58 @@ func init() {
 		}
 		return nil
 	})
+	RegisterCommand("build", "> build", func(args []string) error {
+		const routeBaseDir = "build"
+		var paths = []string{"/"}
+		for _, p := range Posts {
+			paths = append(paths, p.GetURL())
+		}
+		for _, p := range Pages {
+			paths = append(paths, p.GetURL())
+		}
+		blogBasePath := "http://localhost:" + strconv.Itoa(Config.Server.Port)
+		err := os.Mkdir(routeBaseDir, 0700)
+		if err != nil {
+			return err
+		}
+		for _, p := range paths {
+			url := blogBasePath + p
+			fmt.Println("Loading " + url)
+			resp, err := http.Get(url)
+			if err != nil {
+				return err
+			}
+
+			defer resp.Body.Close()
+			if p == "/" {
+				p = "/index"
+				url = blogBasePath + "/index"
+			}
+			baseDir := filepath.Dir(filepath.Join(routeBaseDir, p))
+			err = os.MkdirAll(baseDir, 0700)
+			if err != nil {
+				return err
+			}
+
+			file, err := os.Create(filepath.Join(baseDir, filepath.Base(url)+".html"))
+			if err != nil {
+				return err
+			}
+
+			defer file.Close()
+			_, err = io.Copy(file, resp.Body)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func check(err error) {
+	if err != nil {
+		panic(err)
+	}
 }
 
 func startInteractiveMode() {
