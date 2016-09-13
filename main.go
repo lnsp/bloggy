@@ -85,6 +85,7 @@ func Reload() error {
 	if err := LoadPages(); err != nil {
 		return err
 	}
+	ClearNav()
 	AddLinks()
 	return nil
 }

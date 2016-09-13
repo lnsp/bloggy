@@ -76,6 +76,10 @@ type ErrorContext struct {
 	Message string
 }
 
+func ClearNav() {
+	navItems = make([]NavItemContext, 0)
+}
+
 // AddNavItem adds a item to the navigation.
 func AddNavItem(e Entry) {
 	item := NavItemContext{
