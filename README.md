@@ -4,9 +4,7 @@
 This is a blog system I am currently developing. It is focused on simplicity and conventions over configuration. I recommend to proxy the service using NGINX or comparable software.
 
 ## Screenshot
-
-![Screnshot of Bloggy](https://cloud.githubusercontent.com/assets/3391295/14057173/52c40638-f2f8-11e5-9fda-23c111e96f5c.png)
-
+![Screenshot](https://cloud.githubusercontent.com/assets/3391295/22408821/0a8ee4e2-e680-11e6-9c8b-6d123fb21e97.png)
 ## Getting started
 You need to have Git and a working Go environment installed (v1.5+).
 
