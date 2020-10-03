@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"io/ioutil"
@@ -10,8 +10,9 @@ import (
 // DefaultConfigFile is the default name of the configuration file.
 const DefaultConfigFile = "config.yaml"
 
-// BlogConfig represents the blog configuration.
-type BlogConfig struct {
+// Config represents the blog configuration.
+type Config struct {
+	Base   string
 	Server struct {
 		Port    int
 		TLSPort int
@@ -29,17 +30,17 @@ type BlogConfig struct {
 	Links map[string]string
 }
 
-// LoadConfig loads the blog configuration.
-func LoadConfig() error {
-	contents, err := ioutil.ReadFile(path.Join(BlogFolder, DefaultConfigFile))
+// Load loads the blog configuration.
+func Load(folder string) (*Config, error) {
+	contents, err := ioutil.ReadFile(path.Join(folder, DefaultConfigFile))
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	err = yaml.Unmarshal(contents, &Config)
+	var cfg Config
+	err = yaml.Unmarshal(contents, &cfg)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	return nil
+	cfg.Base = folder
+	return &cfg, nil
 }
