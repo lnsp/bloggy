@@ -1,7 +1,8 @@
-package main
+package content
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -11,8 +12,10 @@ import (
 	"time"
 
 	"github.com/go-yaml/yaml"
+	"github.com/lnsp/bloggy/pkg/config"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/russross/blackfriday"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -23,6 +26,11 @@ const (
 	// FileDateFormat is the date format required in a post's header.
 	FileDateFormat = "2006-Jan-02"
 )
+
+type URLResolver interface {
+	Page(string) string
+	Post(string) string
+}
 
 // ParseData stores the parsed data of a file.
 type ParseData struct {
@@ -57,6 +65,7 @@ type Post struct {
 	PublishDate time.Time
 	Slug        string
 	Content     string
+	Resolver    URLResolver
 }
 
 // GetContent returns the content body of the post.
@@ -73,7 +82,7 @@ func (p *Post) GetTitle() string {
 func (p *Post) GetURL() string {
 	rgx, _ := regexp.Compile("[^A-Za-z\\-]")
 	slugged := rgx.ReplaceAllString(p.Slug, "")
-	return PostBaseURL + strings.ToLower(slugged)
+	return p.Resolver.Post(strings.ToLower(slugged))
 }
 
 // Age returns the age of the post in seconds.
@@ -83,9 +92,10 @@ func (p *Post) Age() int64 {
 
 // Page stores a title, a page slug and the body content.
 type Page struct {
-	Title   string
-	Slug    string
-	Content string
+	Title    string
+	Slug     string
+	Content  string
+	Resolver URLResolver
 }
 
 // GetContent returns the content body of the page.
@@ -102,7 +112,7 @@ func (p *Page) GetTitle() string {
 func (p *Page) GetURL() string {
 	regex, _ := regexp.Compile("[^A-Za-z\\-]")
 	slugged := regex.ReplaceAllString(p.Slug, "")
-	return PageBaseURL + strings.ToLower(slugged)
+	return p.Resolver.Page(strings.ToLower(slugged))
 }
 
 // ByAge implements a interface to sort a slice of posts by publishing date.
@@ -118,17 +128,21 @@ func (b ByAge) Less(i, j int) bool {
 	return b[i].Age() < b[j].Age()
 }
 
-// Posts stores all blog posts.
-var Posts []Post
+type Index struct {
+	// Posts stores all blog posts.
+	Posts []Post
 
-// Pages stores all blog pages.
-var Pages []Page
+	// Pages stores all blog pages.
+	Pages []Page
 
-// PostBySlug matches each slug to its post.
-var PostBySlug map[string]*Post
+	// PostBySlug matches each slug to its post.
+	PostBySlug map[string]*Post
 
-// PageBySlug matches each slug to its page.
-var PageBySlug map[string]*Page
+	// PageBySlug matches each slug to its page.
+	PageBySlug map[string]*Page
+
+	Resolver URLResolver
+}
 
 // Render generates HTML from an entries markdown content.
 func Render(e Entry) string {
@@ -172,9 +186,8 @@ func parseFile(file string) (data *ParseData, err error) {
 	data.SetContent(body)
 
 	// Decode JSON header
-	yamlError := yaml.Unmarshal([]byte(header), &data)
-	if yamlError != nil {
-		Error.Println(file, ":", yamlError)
+	if err := yaml.Unmarshal([]byte(header), &data); err != nil {
+		return nil, err
 	}
 
 	// Generate slug from file name if needed
@@ -193,34 +206,36 @@ func loadDirectory(dir string, callback func(*ParseData) error) error {
 		return err
 	}
 
-	Trace.Println("searching in", glob)
-	Trace.Println("found entries:", strings.Join(dirEntries, ","))
+	logrus.WithFields(logrus.Fields{
+		"glob":    glob,
+		"entries": dirEntries,
+	}).Debug("scanning directory")
 	for _, entry := range dirEntries {
 		// Parse file entry
 		data, err := parseFile(entry)
 		if err != nil {
-			Warning.Println("parse error:", err)
+			logrus.WithField("file", entry).Warn("failed to parse")
 			continue
 		}
 
 		err = callback(data)
 		if err != nil {
-			Error.Println(err)
+			logrus.WithField("file", entry).Warn("failed to callback")
 			continue
 		}
-		Trace.Println("read file:", entry)
 	}
 
 	return nil
 }
 
-// addPost creates a new post from the parsed data.
-func addPost(data *ParseData) error {
+// AddPost creates a new post from the parsed data.
+func (c *Index) AddPost(data *ParseData) error {
 	p := Post{
 		Title:    data.Title,
 		Subtitle: data.Subtitle,
 		Slug:     data.Slug,
 		Content:  data.Content(),
+		Resolver: c.Resolver,
 	}
 	date, err := time.Parse(FileDateFormat, data.PublishDate)
 	if err != nil {
@@ -228,57 +243,48 @@ func addPost(data *ParseData) error {
 	}
 	p.PublishDate = date
 
-	Posts = append(Posts, p)
-	PostBySlug[p.Slug] = &p
+	c.Posts = append(c.Posts, p)
+	c.PostBySlug[p.Slug] = &p
 	return nil
 }
 
-// addPage creates a new page from the parsed data.
-func addPage(data *ParseData) error {
+// AddPage creates a new page from the parsed data.
+func (c *Index) AddPage(data *ParseData) error {
 	p := Page{
-		Title:   data.Title,
-		Slug:    data.Slug,
-		Content: data.Content(),
+		Title:    data.Title,
+		Slug:     data.Slug,
+		Content:  data.Content(),
+		Resolver: c.Resolver,
 	}
 
-	Pages = append(Pages, p)
-	PageBySlug[p.Slug] = &p
+	c.Pages = append(c.Pages, p)
+	c.PageBySlug[p.Slug] = &p
 	return nil
 }
 
-// LoadPosts loads all posts from the posts/ folder.
-func LoadPosts() error {
-	Posts = make([]Post, 0)
-	PostBySlug = make(map[string]*Post)
-	err := loadDirectory(path.Join(BlogFolder, PostsFolder), addPost)
+func NewIndex(cfg *config.Config, resolver URLResolver) (*Index, error) {
+	index := &Index{
+		PostBySlug: make(map[string]*Post),
+		PageBySlug: make(map[string]*Page),
+		Resolver:   resolver,
+	}
+	err := loadDirectory(path.Join(cfg.Base, PostsFolder), index.AddPost)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("load posts dir: %w", err)
 	}
 	// Sort all posts by age
-	sort.Sort(ByAge(Posts))
-	return nil
-}
-
-// LoadPages loads all pages from the pages/ folder.
-func LoadPages() error {
-	Pages = make([]Page, 0)
-	PageBySlug = make(map[string]*Page)
-	err := loadDirectory(path.Join(BlogFolder, PagesFolder), addPage)
-	if err != nil {
-		return err
+	sort.Sort(ByAge(index.Posts))
+	if err := loadDirectory(path.Join(cfg.Base, PagesFolder), index.AddPage); err != nil {
+		return nil, fmt.Errorf("load pages dir: %w", err)
 	}
-	for _, page := range Pages {
-		AddNavItem(&page)
-	}
-
-	return nil
+	return index, nil
 }
 
 // LatestPosts returns a slice of the latest blog posts.
-func LatestPosts(count int) []Post {
-	size := len(Posts)
-	if size < count {
-		return Posts
+func (c *Index) LatestPosts(count int) []Post {
+	size := len(c.Posts)
+	if size < 0 || size < count {
+		return c.Posts
 	}
-	return Posts[:count]
+	return c.Posts[:count]
 }
